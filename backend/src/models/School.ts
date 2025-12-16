@@ -8,7 +8,7 @@ export interface SchoolDoc extends Document {
   pincode?: string;
 
   principalId?: Types.ObjectId;      // admin user
-  subscriptionId?: Types.ObjectId;   // SaaS plan
+  subscriptionId?: Types.ObjectId;   // plaan
 
   isActive: boolean;
 

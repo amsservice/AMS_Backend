@@ -1,16 +1,39 @@
+
+
+
+
 import 'dotenv/config';
 import { envSchema } from './env.schema';
 
 const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
-  console.error('❌ Invalid environment variables');
-  console.error(parsedEnv.error.format());
-  process.exit(1); // stop app immediately
+  console.error(' Invalid environment variables');
+
+  const formatted = parsedEnv.error.format();
+
+  type EnvKeys = keyof typeof formatted;
+
+  (Object.keys(formatted) as EnvKeys[]).forEach((key) => {
+    if (key === '_errors') return;
+
+    const fieldErrors = formatted[key]?._errors;
+
+    if (fieldErrors?.length) {
+      console.error(`${key}:`, fieldErrors);
+    }
+  });
+
+  if (formatted._errors.length) {
+    console.error('General:', formatted._errors);
+  }
+
+  process.exit(1);
 }
+
 
 export const ENV = {
   PORT: parsedEnv.data.PORT,
-  MONGO_URI: parsedEnv.data.MONGO_URI
-//   JWT_SECRET: parsedEnv.data.JWT_SECRET
+  MONGO_URI: parsedEnv.data.MONGO_URI,
+  JWT_SECRET: parsedEnv.data.JWT_SECRET,
 };

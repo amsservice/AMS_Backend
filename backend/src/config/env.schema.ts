@@ -11,8 +11,8 @@ export const envSchema = z.object({
     .string()
     .min(1, 'MONGO_URI is required'),
 
-//   JWT_SECRET: z
-//     .string()
-//     .min(10, 'JWT_SECRET must be at least 10 characters')
+  JWT_SECRET: z
+    .string()
+    .min(10, 'JWT_SECRET must be at least 10 characters')
 });
  export default envSchema;
