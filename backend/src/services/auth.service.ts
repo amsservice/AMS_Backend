@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { School } from '../models/School';
 import { Principal } from '../models/Principal';
-
+import bcrypt from 'bcryptjs';
 import { signJwt } from '../utils/jwt';
 
 export class AuthService {
@@ -46,5 +46,87 @@ export class AuthService {
     } finally {
       session.endSession();
     }
+  }
+
+
+
+   /* ======================================================
+     PRINCIPAL LOGIN
+  ====================================================== */
+  static async loginPrincipal(email: string, password: string) {
+    const principal = await Principal.findOne({ email }).select('+password');
+
+    if (!principal) {
+      throw new Error('Invalid email or password');
+    }
+
+    //  use schema method
+    const isMatch = await principal.comparePassword(password);
+    if (!isMatch) {
+      throw new Error('Invalid email or password');
+    }
+
+    return {
+      token: signJwt({
+        userId: principal._id.toString(),
+        role: 'principal',
+        schoolId: principal.schoolId.toString()
+      })
+    };
+  }
+
+
+   /* ======================================================
+     UPDATE PRINCIPAL PROFILE
+  ====================================================== */
+  static async updatePrincipal(
+    principalId: string,
+    data: { name?: string; password?: string }
+  ) {
+    const principal = await Principal.findById(principalId).select('+password');
+
+    if (!principal) {
+      throw new Error('Principal not found');
+    }
+
+    if (data.name) {
+      principal.name = data.name;
+    }
+
+    if (data.password) {
+      //  hashing handled by schema hook
+      principal.password = data.password;
+    }
+
+    await principal.save();
+
+    return { message: 'Profile updated successfully' };
+  }
+
+
+  /* ======================================================
+   GET PRINCIPAL PROFILE
+====================================================== */
+static async getPrincipal(principalId: string) {
+  const principal = await Principal.findById(principalId).select(
+    'name email phone schoolId createdAt'
+  );
+
+  if (!principal) {
+    throw new Error('Principal not found');
+  }
+
+  return principal;
+}
+
+
+  /*
+     LOGOUT (STATELESS JWT)
+  */
+ static async logout() {
+   
+    return {
+      message: 'Logged out successfully'
+    };
   }
 }
