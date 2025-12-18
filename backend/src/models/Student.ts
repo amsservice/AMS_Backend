@@ -1,9 +1,9 @@
 import { Schema, model, Document, Types } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-/* ===============================
+/* 
    Session History Interface
-================================ */
+*/
 export interface StudentSessionHistory {
   sessionId: Types.ObjectId;
   classId: Types.ObjectId;
@@ -12,9 +12,9 @@ export interface StudentSessionHistory {
   isActive: boolean;
 }
 
-/* ===============================
+/*
    Student Document Interface
-================================ */
+ */
 export interface StudentDoc extends Document {
   name: string;
   email: string;
@@ -35,9 +35,9 @@ export interface StudentDoc extends Document {
   comparePassword(candidate: string): Promise<boolean>;
 }
 
-/* ===============================
+/* 
    Session History Schema
-================================ */
+ */
 const StudentSessionSchema = new Schema<StudentSessionHistory>(
   {
     sessionId: {
@@ -66,9 +66,9 @@ const StudentSessionSchema = new Schema<StudentSessionHistory>(
   { _id: false }
 );
 
-/* ===============================
+/* 
    Student Schema
-================================ */
+ */
 const StudentSchema = new Schema<StudentDoc>(
   {
     name: {
@@ -131,9 +131,9 @@ const StudentSchema = new Schema<StudentDoc>(
   { timestamps: true }
 );
 
-/* ===============================
+/* 
    Indexes (CRITICAL)
-================================ */
+ */
 
 // unique admission number per school
 StudentSchema.index(
@@ -147,17 +147,17 @@ StudentSchema.index(
   { unique: true }
 );
 
-/* ===============================
+/* 
    Password Hashing
-================================ */
+ */
 StudentSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
   this.password = await bcrypt.hash(this.password, 10);
 });
 
-/* ===============================
+/* 
    Password Compare
-================================ */
+ */
 StudentSchema.methods.comparePassword = function (
   candidate: string
 ): Promise<boolean> {

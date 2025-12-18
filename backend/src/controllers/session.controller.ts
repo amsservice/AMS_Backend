@@ -3,9 +3,9 @@ import { Types } from 'mongoose';
 import { SessionService } from '../services/session.service';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-/* ======================================================
+/*
    CREATE SESSION (Principal only)
-====================================================== */
+*/
 export const createSession = async (req: AuthRequest, res: Response) => {
   const schoolId = new Types.ObjectId(req.user!.schoolId);
 
@@ -14,12 +14,12 @@ export const createSession = async (req: AuthRequest, res: Response) => {
   res.status(201).json(session);
 };
 
-/* ======================================================
-   GET SESSIONS (ROLE AWARE)
+/* 
+   GET SESSIONS (by role)
    - Principal → all school sessions
    - Teacher   → assigned sessions only
    - Student   → enrolled sessions only
-====================================================== */
+*/
 export const getSessions = async (req: AuthRequest, res: Response) => {
   const { role, schoolId, userId } = req.user!;
 
@@ -38,9 +38,9 @@ export const getSessions = async (req: AuthRequest, res: Response) => {
   res.status(200).json(sessions);
 };
 
-/* ======================================================
+/*
    UPDATE SESSION (Principal only)
-====================================================== */
+ */
 export const updateSession = async (req: AuthRequest, res: Response) => {
   const schoolId = new Types.ObjectId(req.user!.schoolId);
   const sessionId = new Types.ObjectId(req.params.id);

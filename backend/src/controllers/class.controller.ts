@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { Types } from 'mongoose';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { ClassService } from '../services/class.service';
 
@@ -19,3 +20,5 @@ export const getClasses = async (req: AuthRequest, res: Response) => {
 
   res.json(classes);
 };
+
+

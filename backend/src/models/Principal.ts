@@ -46,9 +46,9 @@ const PrincipalSchema = new Schema<PrincipalDoc>(
   { timestamps: true }
 );
 
-/* 
-   Password Hashing (FIXED)
- */
+ 
+  // Password Hashing (FIXED)
+
 PrincipalSchema.pre('save', async function () {
  
   if (!this.isModified('password')) return;
@@ -56,9 +56,9 @@ PrincipalSchema.pre('save', async function () {
   this.password = await bcrypt.hash(this.password, 10);
 });
 
-/* 
-   Password Comparison
- */
+ 
+  // Password Comparison
+
 PrincipalSchema.methods.comparePassword = async function (
   candidate: string
 ): Promise<boolean> {

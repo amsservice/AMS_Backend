@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth.routes";
 import schoolRoutes from "./routes/school.routes";
 import sessionRoutes from "./routes/session.routes";
 import classRoutes from "./routes/class.routes";
+import teacherRoutes from "./routes/teacher.routes";
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/school",schoolRoutes);
 app.use("/api/session",sessionRoutes);
 app.use("/api/class",classRoutes);
+app.use("/api/teacher",teacherRoutes);
 
 
 

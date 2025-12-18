@@ -24,4 +24,6 @@ export class ClassService {
       .populate('teacherId', 'name email')
       .sort({ name: 1, section: 1 });
   }
+  
 }
+

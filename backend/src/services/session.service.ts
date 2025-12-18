@@ -4,9 +4,9 @@ import { Teacher } from '../models/Teacher';
 import { Student } from '../models/Student';
 
 export class SessionService {
-  /* ===============================
+  /* 
      PRINCIPAL
-  =============================== */
+  */
   static async createSession(schoolId: Types.ObjectId, data: any) {
     await Session.updateMany(
       { schoolId, isActive: true },
@@ -49,9 +49,9 @@ export class SessionService {
     return session;
   }
 
-  /* ===============================
+  /* 
      TEACHER
-  =============================== */
+   */
   static async getSessionsForTeacher(teacherId: string) {
     const teacher = await Teacher.findById(teacherId);
 
@@ -66,9 +66,9 @@ export class SessionService {
     });
   }
 
-  /* ===============================
+  /* 
      STUDENT
-  =============================== */
+   */
   static async getSessionsForStudent(studentId: string) {
     const student = await Student.findById(studentId);
 

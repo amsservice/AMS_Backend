@@ -1,25 +1,3 @@
-// import { Router } from 'express';
-// import {
-  
-//   registerSchool
-// } from '../controllers/auth.controller';
-// import { validate } from '../middleware/validate.middleware';
-// import { registerSchoolSchema } from '../config/zod.schema';
-
-// const router = Router();
-
-// // registration
-// router.post(
-//   '/register-school',
-//   validate(registerSchoolSchema),
-//   registerSchool
-// );
-
-
-
-// export default router;
-
-
 
 import { Router } from 'express';
 import {
@@ -42,16 +20,16 @@ import { allowRoles } from '../middleware/role.middleware';
 
 const router = Router();
 
-/* ======================================================
+/*
    SCHOOL REGISTRATION (PUBLIC)
-====================================================== */
+ */
 router.post(
   '/register-school',
   validate(registerSchoolSchema),
   registerSchool
 );
 
-/* ======================================================
+/* 
    PRINCIPAL LOGIN
  */
 router.post(
@@ -60,9 +38,9 @@ router.post(
   loginPrincipal
 );
 
-/* ======================================================
+/* 
    PRINCIPAL UPDATE PROFILE (PROTECTED)
-====================================================== */
+ */
 router.put(
   '/principal/profile',
   authMiddleware,
@@ -79,9 +57,9 @@ router.get(
 );
 
 
-/* ======================================================
+/*
    LOGOUT (STATELESS JWT)
-====================================================== */
+ */
 router.post(
   '/logout',
   authMiddleware,

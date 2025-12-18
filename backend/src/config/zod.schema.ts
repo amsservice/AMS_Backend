@@ -67,3 +67,42 @@ export const createClassSchema = z.object({
   section: z.string().min(1),           // e.g. "A"
   sessionId: z.string()
 });
+
+
+/* ======================================================
+   TEACHER (PRINCIPAL ACTIONS)
+====================================================== */
+
+//  Create Teacher (Principal)
+export const createTeacherSchema = z.object({
+  name: z.string().min(3, 'Name must be at least 3 characters'),
+  email: z.email(),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  phone: z.string().optional()
+});
+
+//  Update Teacher by Principal
+export const updateTeacherSchema = z.object({
+  name: z.string().min(3).optional(),
+  email: z.email().optional(),
+  password: z.string().min(6).optional(),
+  phone: z.string().optional()
+});
+
+//  Assign Class to Teacher (Principal)
+export const assignClassToTeacherSchema = z.object({
+  sessionId: z.string().min(1, 'Session is required'),
+  classId: z.string().min(1, 'Class is required'),
+  section: z.string().min(1, 'Section is required')
+});
+
+/* ======================================================
+   TEACHER (SELF ACTIONS)
+====================================================== */
+
+//  Teacher Update Own Profile
+export const updateMyProfileSchema = z.object({
+  name: z.string().min(3).optional(),
+  phone: z.string().optional(),
+  password: z.string().min(6).optional()
+});
