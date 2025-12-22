@@ -146,4 +146,30 @@ export class TeacherService {
 
     return { message: 'Teacher deleted successfully' };
   }
+
+
+  /* ======================================================
+   TEACHER: CHANGE OWN PASSWORD
+====================================================== */
+static async changeMyPassword(
+  teacherId: string,
+  oldPassword: string,
+  newPassword: string
+) {
+  const teacher = await Teacher.findById(teacherId).select('+password');
+  if (!teacher) throw new Error('Teacher not found');
+
+  const isMatch = await teacher.comparePassword(oldPassword);
+  if (!isMatch) {
+    throw new Error('Old password is incorrect');
+  }
+
+  teacher.password = newPassword; // hashed by schema hook
+  await teacher.save();
+
+  return { message: 'Password changed successfully' };
 }
+}
+
+
+

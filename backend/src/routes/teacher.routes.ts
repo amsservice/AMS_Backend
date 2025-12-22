@@ -6,7 +6,8 @@ import {
   deleteTeacher,
   getMyProfile,
   updateMyProfile,
-  assignClassToTeacher
+  assignClassToTeacher, 
+  changeMyPassword
 } from '../controllers/teacher.controller';
 
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -15,7 +16,8 @@ import { validate } from '../middleware/validate.middleware';
 import {
   createTeacherSchema,
   updateTeacherSchema,
-  updateMyProfileSchema
+  updateMyProfileSchema,
+  changePasswordSchema
 } from '../config/zod.schema';
 
 const router = Router();
@@ -66,5 +68,18 @@ router.post(
   allowRoles(['principal']),
   assignClassToTeacher
 );
+
+
+/* ======================================================
+   TEACHER: CHANGE OWN PASSWORD
+====================================================== */
+router.put(
+  '/me/password',
+  authMiddleware,
+  allowRoles(['teacher']),
+  validate(changePasswordSchema),
+  changeMyPassword
+);
+
 
 export default router;

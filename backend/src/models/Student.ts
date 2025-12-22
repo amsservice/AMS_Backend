@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 export interface StudentSessionHistory {
   sessionId: Types.ObjectId;
   classId: Types.ObjectId;
+  className: string;
   section: string;
   rollNo: number;
   isActive: boolean;
@@ -48,6 +49,10 @@ const StudentSessionSchema = new Schema<StudentSessionHistory>(
     classId: {
       type: Schema.Types.ObjectId,
       ref: 'Class',
+      required: true
+    },
+    className: {
+      type: String,
       required: true
     },
     section: {

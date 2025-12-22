@@ -69,9 +69,9 @@ export const createClassSchema = z.object({
 });
 
 
-/* ======================================================
+/* 
    TEACHER (PRINCIPAL ACTIONS)
-====================================================== */
+ */
 
 //  Create Teacher (Principal)
 export const createTeacherSchema = z.object({
@@ -96,13 +96,49 @@ export const assignClassToTeacherSchema = z.object({
   section: z.string().min(1, 'Section is required')
 });
 
-/* ======================================================
+/* 
    TEACHER (SELF ACTIONS)
-====================================================== */
+ */
 
 //  Teacher Update Own Profile
 export const updateMyProfileSchema = z.object({
   name: z.string().min(3).optional(),
   phone: z.string().optional(),
   password: z.string().min(6).optional()
+});
+
+
+///student 
+
+export const createStudentSchema = z.object({
+  name: z.string().min(3),
+  email: z.email(),
+  password: z.string().min(6),
+
+  admissionNo: z.string().min(1),
+  fatherName: z.string().min(3),
+  motherName: z.string().min(3),
+  parentsPhone: z.string().min(10),
+
+  rollNo: z.number().int().positive()
+});
+
+/* ======================================================
+   UPDATE STUDENT (TEACHER)
+====================================================== */
+export const updateStudentSchema = z.object({
+  name: z.string().min(3).optional(),
+  fatherName: z.string().min(3).optional(),
+  motherName: z.string().min(3).optional(),
+  parentsPhone: z.string().min(10).optional(),
+  rollNo: z.number().int().positive().optional(),
+  status: z.enum(['active', 'inactive', 'left']).optional()
+});
+
+/* ======================================================
+   CHANGE PASSWORD (STUDENT)
+====================================================== */
+export const changePasswordSchema = z.object({
+  oldPassword: z.string().min(6),
+  newPassword: z.string().min(6)
 });

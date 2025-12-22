@@ -5,7 +5,8 @@ import {
   loginPrincipal,
   logout,
   updatePrincipalProfile,
-  getPrincipalProfile 
+  getPrincipalProfile ,
+  loginTeacher,loginStudent
 } from '../controllers/auth.controller';
 
 import { validate } from '../middleware/validate.middleware';
@@ -21,7 +22,7 @@ import { allowRoles } from '../middleware/role.middleware';
 const router = Router();
 
 /*
-   SCHOOL REGISTRATION (PUBLIC)
+   SCHOOL REGISTRATION (PUBLIC) 
  */
 router.post(
   '/register-school',
@@ -54,6 +55,23 @@ router.get(
   authMiddleware,
   allowRoles(['principal']),
   getPrincipalProfile
+);
+
+/// login teacher route
+
+router.post(
+  '/teacher/login',
+  validate(loginSchema),
+  loginTeacher
+);
+
+/* ======================================================
+   STUDENT LOGIN
+====================================================== */
+router.post(
+  '/student/login',
+  validate(loginSchema),
+  loginStudent
 );
 
 

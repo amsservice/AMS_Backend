@@ -1,7 +1,9 @@
 import mongoose from 'mongoose';
 import { School } from '../models/School';
 import { Principal } from '../models/Principal';
-import bcrypt from 'bcryptjs';
+import {Teacher} from '../models/Teacher';
+import { Student } from '../models/Student';
+
 import { signJwt } from '../utils/jwt';
 
 export class AuthService {
@@ -117,6 +119,53 @@ static async getPrincipal(principalId: string) {
   }
 
   return principal;
+}
+
+
+/// teacher login
+
+static async loginTeacher(email: string, password: string) {
+  const teacher = await Teacher.findOne({ email }).select('+password');
+
+  if (!teacher) {
+    throw new Error('Invalid email or password');
+  }
+
+  const isMatch = await teacher.comparePassword(password);
+  if (!isMatch) {
+    throw new Error('Invalid email or password');
+  }
+
+  return {
+    token: signJwt({
+      userId: teacher._id.toString(),
+      role: 'teacher',
+      schoolId: teacher.schoolId.toString()
+    })
+  };
+}
+
+///student login
+
+static async loginStudent(email: string, password: string) {
+  const student = await Student.findOne({ email }).select('+password');
+
+  if (!student) {
+    throw new Error('Invalid email or password');
+  }
+
+  const isMatch = await student.comparePassword(password);
+  if (!isMatch) {
+    throw new Error('Invalid email or password');
+  }
+
+  return {
+    token: signJwt({
+      userId: student._id.toString(),
+      role: 'student',
+      schoolId: student.schoolId.toString()
+    })
+  };
 }
 
 

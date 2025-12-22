@@ -51,3 +51,27 @@ export const getPrincipalProfile = async (
 
   res.status(200).json(principal);
 };
+
+
+/* ======================================================
+   TEACHER LOGIN
+====================================================== */
+export const loginTeacher = async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  const result = await AuthService.loginTeacher(email, password);
+
+  res.status(200).json(result);
+};
+
+
+/* ======================================================
+   STUDENT LOGIN
+====================================================== */
+export const loginStudent = async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  const result = await AuthService.loginStudent(email, password);
+
+  res.status(200).json(result);
+};

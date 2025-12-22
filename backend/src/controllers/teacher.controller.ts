@@ -83,3 +83,23 @@ export const updateMyProfile = async (req: AuthRequest, res: Response) => {
   );
   res.status(200).json(teacher);
 };
+
+
+/* ======================================================
+   TEACHER: CHANGE OWN PASSWORD
+====================================================== */
+export const changeMyPassword = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const teacherId = req.user!.userId;
+  const { oldPassword, newPassword } = req.body;
+
+  const result = await TeacherService.changeMyPassword(
+    teacherId,
+    oldPassword,
+    newPassword
+  );
+
+  res.status(200).json(result);
+};
