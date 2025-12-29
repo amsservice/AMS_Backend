@@ -217,4 +217,22 @@ export class SubscriptionService {
   static async findByPaymentId(paymentId: string) {
     return Subscription.findOne({ paymentId });
   }
+
+//get total number for billable students
+
+  static async getBillableStudents(schoolId: Types.ObjectId) {
+    const subscription = await Subscription.findOne(
+      {
+        schoolId,
+        status: { $in: ['active', 'grace'] }
+      },
+      { billableStudents: 1 }
+    );
+
+    if (!subscription) {
+      throw new Error('No active subscription found');
+    }
+
+    return subscription.billableStudents;
+  }
 }

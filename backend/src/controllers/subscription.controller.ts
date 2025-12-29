@@ -9,6 +9,8 @@ import Razorpay from 'razorpay';
 import { PaymentIntent } from '../models/PaymentIntent';
 import { SubscriptionService } from '../services/subscription.service';
 import { PLANS } from '../utils/subscriptionPlans';
+import { AuthRequest } from '../middleware/auth.middleware';
+import { Subscription } from '../models/Subscription';
 import {
   pricePreviewSchema,
   createPaymentSchema
@@ -168,5 +170,45 @@ export const renewSubscription = async (
     });
   } finally {
     session.endSession();
+  }
+};
+
+//get billable students
+
+export const getBillableStudents = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const schoolId = req.user?.schoolId;
+
+    if (!schoolId) {
+      return res.status(400).json({
+        message: 'School ID not found in token'
+      });
+    }
+
+    const subscription = await Subscription.findOne(
+      {
+        schoolId: new mongoose.Types.ObjectId(schoolId),
+        status: { $in: ['active', 'grace'] }
+      },
+      { billableStudents: 1 }
+    );
+
+    if (!subscription) {
+      return res.status(404).json({
+        message: 'No active subscription found'
+      });
+    }
+
+    return res.status(200).json({
+      billableStudents: subscription.billableStudents
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({
+      message: error.message
+    });
   }
 };

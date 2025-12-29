@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import { Types } from 'mongoose';
+// import { Types } from 'mongoose';
 import { TeacherService } from '../services/teacher.service';
 import { AuthRequest } from '../middleware/auth.middleware';
+import  { Types } from 'mongoose';
 
 
 /* 
@@ -48,23 +49,62 @@ export const deleteTeacher = async (req: AuthRequest, res: Response) => {
 /* 
    ASSIGN CLASS TO TEACHER (PRINCIPAL ONLY)
 */
+// export const assignClassToTeacher = async (
+//   req: AuthRequest,
+//   res: Response
+// ) => {
+//   const schoolId = new Types.ObjectId(req.user!.schoolId);
+
+//   const result = await TeacherService.assignClass(schoolId, {
+//     teacherId: req.params.id,
+//     sessionId: new Types.ObjectId(req.body.sessionId),
+//     classId: new Types.ObjectId(req.body.classId),
+//     className: req.body.className,
+//     section: req.body.section
+   
+//   });
+
+//   res.status(200).json(result);
+// };
+
 export const assignClassToTeacher = async (
   req: AuthRequest,
   res: Response
 ) => {
-  const schoolId = new Types.ObjectId(req.user!.schoolId);
+  const { sessionId, classId, className, section } = req.body;
+  const { id: teacherId } = req.params;
 
-  const result = await TeacherService.assignClass(schoolId, {
-    teacherId: req.params.id,
-    sessionId: new Types.ObjectId(req.body.sessionId),
-    classId: new Types.ObjectId(req.body.classId),
-    className: req.body.className,
-    section: req.body.section
-   
-  });
+  // ✅ VALIDATION
+  if (
+    !Types.ObjectId.isValid(teacherId) ||
+    !Types.ObjectId.isValid(sessionId) ||
+    !Types.ObjectId.isValid(classId)
+  ) {
+    return res.status(400).json({
+      message: "Invalid teacherId / sessionId / classId"
+    });
+  }
+
+  const result = await TeacherService.assignClass(
+    new Types.ObjectId(req.user!.schoolId),
+    {
+      teacherId,
+      sessionId: new Types.ObjectId(sessionId),
+      classId: new Types.ObjectId(classId),
+      className,
+      section
+    }
+  );
 
   res.status(200).json(result);
 };
+
+
+
+
+
+
+
 
 
 
@@ -74,6 +114,13 @@ export const assignClassToTeacher = async (
 export const getMyProfile = async (req: AuthRequest, res: Response) => {
   const teacher = await TeacherService.getMyProfile(req.user!.userId);
   res.status(200).json(teacher);
+
+
+     
+  
+   
+  
+  
 };
 
 export const updateMyProfile = async (req: AuthRequest, res: Response) => {
@@ -102,4 +149,30 @@ export const changeMyPassword = async (
   );
 
   res.status(200).json(result);
+};
+
+
+
+
+/* ======================================================
+   PRINCIPAL DASHBOARD
+   TOTAL ACTIVE TEACHERS
+====================================================== */
+export const getActiveTeacherCount = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const schoolId = new Types.ObjectId(req.user!.schoolId);
+
+    const totalActiveTeachers =
+      await TeacherService.countActiveTeachers(schoolId);
+
+    res.status(200).json({ totalActiveTeachers });
+  } catch (error: any) {
+    res.status(500).json({
+      message: 'Failed to fetch active teacher count',
+      error: error.message
+    });
+  }
 };

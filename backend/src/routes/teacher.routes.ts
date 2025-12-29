@@ -7,7 +7,8 @@ import {
   getMyProfile,
   updateMyProfile,
   assignClassToTeacher, 
-  changeMyPassword
+  changeMyPassword,
+  getActiveTeacherCount
 } from '../controllers/teacher.controller';
 
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -80,6 +81,19 @@ router.put(
   validate(changePasswordSchema),
   changeMyPassword
 );
+
+
+
+/* ======================================================
+   PRINCIPAL DASHBOARD
+   ACTIVE TEACHER STATS (SESSION WISE)
+====================================================== */
+router.get(
+  '/active-teachers',
+  allowRoles(['principal']),
+  getActiveTeacherCount
+);
+
 
 
 export default router;

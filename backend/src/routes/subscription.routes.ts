@@ -7,8 +7,11 @@ import {
   getPlans,
   previewPrice,
   createPayment,
-   renewSubscription 
+   renewSubscription ,
+    getBillableStudents
 } from '../controllers/subscription.controller';
+
+import { authMiddleware } from '../middleware/auth.middleware';
 
 import { validate } from '../middleware/validate.middleware';
 import {
@@ -41,5 +44,14 @@ router.post(
 );
 //renew subscription
 router.post('/renew',validate(renewSubscriptionSchema), renewSubscription);
+
+/* ===============================
+   BILLABLE STUDENTS (PRINCIPAL)
+================================ */
+router.get(
+  '/billable-students',
+  authMiddleware,
+  getBillableStudents
+);
 
 export default router;

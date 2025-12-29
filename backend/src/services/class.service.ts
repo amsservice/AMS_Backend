@@ -1,3 +1,6 @@
+
+
+// services/class.service.ts
 import { Class } from '../models/Class';
 import { Types } from 'mongoose';
 
@@ -9,21 +12,47 @@ interface CreateClassInput {
 }
 
 export class ClassService {
+  /**
+   * Create a new class linked to school + active session
+   */
   static async createClass(data: CreateClassInput) {
     return Class.create(data);
   }
 
-  static async getClasses(
-    schoolId: Types.ObjectId,
-    sessionId?: Types.ObjectId
-  ) {
-    const query: any = { schoolId };
-    if (sessionId) query.sessionId = sessionId;
-
-    return Class.find(query)
-      .populate('teacherId', 'name email')
-      .sort({ name: 1, section: 1 });
-  }
   
+
+
+
+  static async getClasses(
+  schoolId: Types.ObjectId,
+  sessionId: Types.ObjectId
+) {
+  
+
+  const classes = await Class.find({ schoolId, sessionId })
+    .populate('teacherId', 'name')
+    .sort({ name: 1, section: 1 })
+    .lean();
+
+  return classes.map((cls: any) => ({
+    id: cls._id.toString(),
+    name: cls.name,
+    section: cls.section,
+
+    // ✅ REQUIRED FOR ASSIGN API
+    sessionId: cls.sessionId.toString(),
+
+    // optional but useful
+    teacherId: cls.teacherId?._id
+      ? cls.teacherId._id.toString()
+      : null,
+
+    teacher: cls.teacherId ? cls.teacherId.name : null,
+
+    studentCount: 0
+  }));
+
+
 }
 
+}

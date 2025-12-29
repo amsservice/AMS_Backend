@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { Teacher } from '../models/Teacher';
-import {Class} from "../models/Class";
+import { Class } from "../models/Class";
 
 export class TeacherService {
   /* 
@@ -20,11 +20,12 @@ export class TeacherService {
     schoolId: Types.ObjectId,
     data: {
       teacherId: string;
+      //  teacherId: Types.ObjectId;
       sessionId: Types.ObjectId;
       classId: Types.ObjectId;
-      className:string;
+      className: string;
       section: string;
-      
+
     }
   ) {
     const teacher = await Teacher.findOne({
@@ -42,9 +43,9 @@ export class TeacherService {
 
     if (!classDoc) throw new Error('Class not found');
 
-     /* 
-        REMOVE TEACHER FROM PREVIOUS CLASS (SAME SESSION)
-    */
+    /* 
+       REMOVE TEACHER FROM PREVIOUS CLASS (SAME SESSION)
+   */
     await Class.updateMany(
       {
         teacherId: teacher._id,
@@ -68,14 +69,14 @@ export class TeacherService {
     teacher.history.push({
       sessionId: data.sessionId,
       classId: data.classId,
-      className:data.className,
+      className: data.className,
       section: data.section,
-       isActive: true
+      isActive: true
     });
 
     await teacher.save();
 
-    return{
+    return {
       message: 'class assigned to teacher successfully'
     };
   }
@@ -151,25 +152,35 @@ export class TeacherService {
   /* ======================================================
    TEACHER: CHANGE OWN PASSWORD
 ====================================================== */
-static async changeMyPassword(
-  teacherId: string,
-  oldPassword: string,
-  newPassword: string
-) {
-  const teacher = await Teacher.findById(teacherId).select('+password');
-  if (!teacher) throw new Error('Teacher not found');
+  static async changeMyPassword(
+    teacherId: string,
+    oldPassword: string,
+    newPassword: string
+  ) {
+    const teacher = await Teacher.findById(teacherId).select('+password');
+    if (!teacher) throw new Error('Teacher not found');
 
-  const isMatch = await teacher.comparePassword(oldPassword);
-  if (!isMatch) {
-    throw new Error('Old password is incorrect');
+    const isMatch = await teacher.comparePassword(oldPassword);
+    if (!isMatch) {
+      throw new Error('Old password is incorrect');
+    }
+
+    teacher.password = newPassword; // hashed by schema hook
+    await teacher.save();
+
+    return { message: 'Password changed successfully' };
   }
 
-  teacher.password = newPassword; // hashed by schema hook
-  await teacher.save();
 
-  return { message: 'Password changed successfully' };
+/* ======================================================
+   PRINCIPAL DASHBOARD
+   TOTAL ACTIVE TEACHERS (SCHOOL WISE)
+   NO SESSION
+====================================================== */
+static async countActiveTeachers(schoolId: Types.ObjectId) {
+  return Teacher.countDocuments({
+    schoolId,
+    'history.isActive': true
+  });
 }
 }
-
-
-
