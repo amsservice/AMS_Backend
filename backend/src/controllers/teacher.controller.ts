@@ -111,17 +111,34 @@ export const assignClassToTeacher = async (
 /* 
    TEACHER (SELF) teacher can see their profile and update 
  */
+// export const getMyProfile = async (req: AuthRequest, res: Response) => {
+//   const teacher = await TeacherService.getMyProfile(req.user!.userId);
+//   res.status(200).json(teacher);
+  
+  
+  
+// };
+
+
 export const getMyProfile = async (req: AuthRequest, res: Response) => {
   const teacher = await TeacherService.getMyProfile(req.user!.userId);
-  res.status(200).json(teacher);
 
+  if (!teacher) {
+    return res.status(404).json({
+      message: "Teacher not found"
+    });
+  }
 
-     
-  
-   
-  
-  
+  res.status(200).json({
+    user: {
+      id: teacher._id.toString(),
+      name: teacher.name,
+      email: teacher.email,
+      role: "teacher"
+    }
+  });
 };
+
 
 export const updateMyProfile = async (req: AuthRequest, res: Response) => {
   const teacher = await TeacherService.updateMyProfile(

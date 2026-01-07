@@ -41,7 +41,8 @@ export const createHoliday = async (
       date: new Date(date),
       description,
       category,
-      schoolId: req.user!.schoolId as Types.ObjectId,
+      schoolId:new Types.ObjectId(req.user!.schoolId),
+
       sessionId: activeSession._id
     });
 
@@ -82,7 +83,8 @@ export const getHolidays = async (
     }
 
     const holidays = await HolidayService.getHolidays(
-      req.user!.schoolId as Types.ObjectId,
+      new Types.ObjectId(req.user!.schoolId)
+,
       activeSession._id
     );
 
@@ -105,7 +107,8 @@ export const updateHoliday = async (
   try {
     const updated = await HolidayService.updateHoliday(
       req.params.id as unknown as Types.ObjectId,
-      req.user!.schoolId as Types.ObjectId,
+      new Types.ObjectId(req.user!.schoolId)
+,
       req.body
     );
 
@@ -135,7 +138,8 @@ export const deleteHoliday = async (
   try {
     const deleted = await HolidayService.deleteHoliday(
       req.params.id as unknown as Types.ObjectId,
-      req.user!.schoolId as Types.ObjectId
+      new Types.ObjectId(req.user!.schoolId)
+
     );
 
     if (!deleted) {

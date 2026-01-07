@@ -2,7 +2,7 @@ export const PLANS = {
   '1Y': {
     id: '1Y',
     durationMonths: 12,
-    pricePerStudentPerMonth: 50
+    pricePerStudentPerMonth: 20
   },
   '2Y': {
     id: '2Y',

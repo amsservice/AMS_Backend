@@ -31,7 +31,7 @@ router.use(authMiddleware);
 router.get('/me', allowRoles(['teacher']), getMyProfile);
 router.put(
   '/me',
-  allowRoles(['teacher']),
+  allowRoles(['teacher','principal']),
   validate(updateMyProfileSchema),
   updateMyProfile
 );

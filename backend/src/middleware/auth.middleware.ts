@@ -1,10 +1,44 @@
 
 
+// import { Request, Response, NextFunction } from 'express';
+// import { verifyJwt } from '../utils/jwt';
+
+// export interface AuthRequest extends Request {
+//   user?: any;
+// }
+
+
+
+
+// export const authMiddleware = (
+//   req: AuthRequest,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const token = req.headers.authorization?.split(' ')[1];
+
+//   if (!token) {
+//     return res.status(401).json({ message: 'Unauthorized' });
+//   }
+
+//   try {
+//     req.user = verifyJwt(token);
+//     next();
+//   } catch {
+//     return res.status(401).json({ message: 'Invalid token' });
+//   }
+// };
+
+
 import { Request, Response, NextFunction } from 'express';
 import { verifyJwt } from '../utils/jwt';
 
 export interface AuthRequest extends Request {
-  user?: any;
+  user?: {
+    userId: string;
+    role: 'principal' | 'teacher' | 'student';
+    schoolId: string;
+  };
 }
 
 export const authMiddleware = (
@@ -12,11 +46,13 @@ export const authMiddleware = (
   res: Response,
   next: NextFunction
 ) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  const authHeader = req.headers.authorization;
 
-  if (!token) {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
+
+  const token = authHeader.split(' ')[1];
 
   try {
     req.user = verifyJwt(token);
@@ -24,6 +60,8 @@ export const authMiddleware = (
   } catch {
     return res.status(401).json({ message: 'Invalid token' });
   }
+  console.log('AUTH USER:', req.user);
+
 };
 
 

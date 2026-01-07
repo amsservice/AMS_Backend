@@ -10,6 +10,11 @@ interface CreateClassInput {
   schoolId: Types.ObjectId;
   sessionId: Types.ObjectId;
 }
+interface UpdateClassInput {
+  name?: string;
+  section?: string;
+  teacherId?: Types.ObjectId | null;
+}
 
 export class ClassService {
   /**
@@ -54,5 +59,63 @@ export class ClassService {
 
 
 }
+
+
+  /**
+   * UPDATE CLASS (Edit class name / section / teacher)
+   */
+  static async updateClass(
+    classId: Types.ObjectId,
+    schoolId: Types.ObjectId,
+    sessionId: Types.ObjectId,
+    data: UpdateClassInput
+   
+  ) {
+    return Class.findOneAndUpdate(
+      {
+        _id: classId,
+        schoolId,
+        sessionId
+      },
+      {
+        $set:data
+        
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+  }
+
+  /**
+   * DELETE CLASS
+   */
+  static async deleteClass(
+    classId: Types.ObjectId,
+    schoolId: Types.ObjectId,
+    sessionId: Types.ObjectId
+  ) {
+    return Class.findOneAndDelete({
+      _id: classId,
+      schoolId,
+      sessionId
+    });
+  }
+
+
+/* ===============================
+     TOTAL CLASSES COUNT
+     =============================== */
+  static async getTotalClasses(
+    schoolId: Types.ObjectId,
+    sessionId: Types.ObjectId
+  ): Promise<number> {
+    return Class.countDocuments({
+      schoolId,
+      sessionId
+    });
+    
+  }
 
 }

@@ -38,19 +38,7 @@ export const updatePrincipalProfile = async (
   res.status(200).json(result);
 };
 
-/* ======================================================
-   GET PRINCIPAL PROFILE
-====================================================== */
-// export const getPrincipalProfile = async (
-//   req: AuthRequest,
-//   res: Response
-// ) => {
-//   const principalId = req.user!.userId;
 
-//   const principal = await AuthService.getPrincipal(principalId);
-
-//   res.status(200).json(principal);
-// };
 
 export const getPrincipalProfile = async (
   req: AuthRequest,
