@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import mongoose,  { Types} from 'mongoose';
 import { Teacher } from '../models/Teacher';
 import { Class } from "../models/Class";
 
@@ -30,7 +30,8 @@ export class TeacherService {
   ) {
     const teacher = await Teacher.findOne({
       _id: data.teacherId,
-      schoolId
+      schoolId,
+      isActive: true
     });
 
     if (!teacher) throw new Error('Teacher not found');
@@ -79,6 +80,37 @@ export class TeacherService {
     return {
       message: 'class assigned to teacher successfully'
     };
+  }
+
+  /* ======================================================
+     TEACHER LEAVES SCHOOL (SOFT DELETE)
+  ====================================================== */
+  static async deactivateTeacher(
+    schoolId: Types.ObjectId,
+    teacherId: string
+  ) {
+    const teacher = await Teacher.findOne({
+      _id: teacherId,
+      schoolId
+    });
+
+    if (!teacher) throw new Error('Teacher not found');
+
+    /* REMOVE FROM ALL CLASSES */
+    await Class.updateMany(
+      { teacherId: teacher._id },
+      { $unset: { teacherId: 1 } }
+    );
+
+    /* DEACTIVATE ALL HISTORY */
+    teacher.history.forEach(h => (h.isActive = false));
+
+    teacher.isActive = false;
+    teacher.leftAt = new Date();
+
+    await teacher.save();
+
+    return { message: 'Teacher deactivated successfully' };
   }
 
   /* 
@@ -183,4 +215,107 @@ static async countActiveTeachers(schoolId: Types.ObjectId) {
     'history.isActive': true
   });
 }
+
+/* ======================================================
+     SWAP TEACHERS BETWEEN TWO CLASSES
+  ====================================================== */
+  static async swapTeacherClasses(
+    schoolId: Types.ObjectId,
+    data: {
+      sessionId: Types.ObjectId;
+
+      teacherAId: string;
+      classAId: Types.ObjectId;
+      classAName: string;
+      sectionA: string;
+
+      teacherBId: string;
+      classBId: Types.ObjectId;
+      classBName: string;
+      sectionB: string;
+    }
+  ) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const teacherA = await Teacher.findOne({
+        _id: data.teacherAId,
+        schoolId,
+        isActive: true
+      }).session(session);
+
+      const teacherB = await Teacher.findOne({
+        _id: data.teacherBId,
+        schoolId,
+        isActive: true
+      }).session(session);
+
+      if (!teacherA || !teacherB) {
+        throw new Error('Both teachers must be active');
+      }
+
+      /* 1️⃣ REMOVE BOTH TEACHERS FROM THEIR CLASSES */
+      await Class.updateMany(
+        { _id: { $in: [data.classAId, data.classBId] } },
+        { $unset: { teacherId: 1 } },
+        { session }
+      );
+
+      /* 2️⃣ ASSIGN SWAPPED TEACHERS */
+      await Class.findByIdAndUpdate(
+        data.classAId,
+        { teacherId: teacherB._id },
+        { session }
+      );
+
+      await Class.findByIdAndUpdate(
+        data.classBId,
+        { teacherId: teacherA._id },
+        { session }
+      );
+
+      /* 3️⃣ UPDATE TEACHER A HISTORY */
+      teacherA.history.forEach(h => {
+        if (h.sessionId.toString() === data.sessionId.toString()) {
+          h.isActive = false;
+        }
+      });
+
+      teacherA.history.push({
+        sessionId: data.sessionId,
+        classId: data.classBId,
+        className: data.classBName,
+        section: data.sectionB,
+        isActive: true
+      });
+
+      /* 4️⃣ UPDATE TEACHER B HISTORY */
+      teacherB.history.forEach(h => {
+        if (h.sessionId.toString() === data.sessionId.toString()) {
+          h.isActive = false;
+        }
+      });
+
+      teacherB.history.push({
+        sessionId: data.sessionId,
+        classId: data.classAId,
+        className: data.classAName,
+        section: data.sectionA,
+        isActive: true
+      });
+
+      await teacherA.save({ session });
+      await teacherB.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return { message: 'Teachers swapped successfully' };
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
+  }
 }

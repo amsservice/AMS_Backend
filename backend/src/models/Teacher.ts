@@ -19,6 +19,8 @@ export interface TeacherDoc extends Document {
   password: string;
   schoolId: Types.ObjectId;
   phone?: string;
+  isActive: boolean;
+  leftAt?: Date;
   history: TeacherSessionHistory[];
 
   // ✅ ADD THIS (IMPORTANT)
@@ -62,6 +64,15 @@ const TeacherSchema = new Schema<TeacherDoc>(
     },
 
     phone: String,
+
+    isActive: {
+      type: Boolean,
+      default: true
+    },
+
+    leftAt: {
+      type: Date
+    },
 
     history: {
       type: [TeacherSessionSchema],

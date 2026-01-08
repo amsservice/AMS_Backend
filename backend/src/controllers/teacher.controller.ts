@@ -46,27 +46,8 @@ export const deleteTeacher = async (req: AuthRequest, res: Response) => {
 };
 
 
-/* 
-   ASSIGN CLASS TO TEACHER (PRINCIPAL ONLY)
-*/
-// export const assignClassToTeacher = async (
-//   req: AuthRequest,
-//   res: Response
-// ) => {
-//   const schoolId = new Types.ObjectId(req.user!.schoolId);
 
-//   const result = await TeacherService.assignClass(schoolId, {
-//     teacherId: req.params.id,
-//     sessionId: new Types.ObjectId(req.body.sessionId),
-//     classId: new Types.ObjectId(req.body.classId),
-//     className: req.body.className,
-//     section: req.body.section
-   
-//   });
-
-//   res.status(200).json(result);
-// };
-
+//this will use to assign class or change class by only principal
 export const assignClassToTeacher = async (
   req: AuthRequest,
   res: Response
@@ -99,7 +80,22 @@ export const assignClassToTeacher = async (
   res.status(200).json(result);
 };
 
+/* ======================================================
+   PRINCIPAL: DEACTIVATE TEACHER (SOFT DELETE)
+====================================================== */
+export const deactivateTeacher = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const schoolId = new Types.ObjectId(req.user!.schoolId);
 
+  const result = await TeacherService.deactivateTeacher(
+    schoolId,
+    req.params.teacherId
+  );
+
+  res.status(200).json(result);
+};
 
 
 
@@ -192,4 +188,29 @@ export const getActiveTeacherCount = async (
       error: error.message
     });
   }
+};
+
+
+//swape teachers
+export const swapTeacherClasses = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const schoolId = new Types.ObjectId(req.user!.schoolId);
+
+  const result = await TeacherService.swapTeacherClasses(schoolId, {
+    sessionId: new Types.ObjectId(req.body.sessionId),
+
+    teacherAId: req.body.teacherAId,
+    classAId: new Types.ObjectId(req.body.classAId),
+    classAName: req.body.classAName,
+    sectionA: req.body.sectionA,
+
+    teacherBId: req.body.teacherBId,
+    classBId: new Types.ObjectId(req.body.classBId),
+    classBName: req.body.classBName,
+    sectionB: req.body.sectionB
+  });
+
+  res.status(200).json(result);
 };
