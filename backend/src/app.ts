@@ -10,7 +10,9 @@ import sessionRoutes from "./routes/session.routes";
 import classRoutes from "./routes/class.routes";
 import teacherRoutes from "./routes/teacher.routes";
 import studentRoutes from "./routes/student.routes";
-
+import subscriptionRoutes from "./routes/subscription.routes";
+import paymentRoutes from "./routes/payment.routes"; 
+import holidayRoutes from './routes/holiday.routes';
 dotenv.config();
 
 const app = express();
@@ -36,6 +38,9 @@ app.use("/api/session",sessionRoutes);
 app.use("/api/class",classRoutes);
 app.use("/api/teacher",teacherRoutes);
 app.use("/api/student",studentRoutes);
+app.use("/api/subscription",subscriptionRoutes);
+app.use("/api/payment",paymentRoutes);
+app.use('/api/holidays', holidayRoutes);
 
 
 

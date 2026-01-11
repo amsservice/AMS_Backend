@@ -1,50 +1,120 @@
 import mongoose from 'mongoose';
 import { School } from '../models/School';
 import { Principal } from '../models/Principal';
-import {Teacher} from '../models/Teacher';
+import { Teacher } from '../models/Teacher';
 import { Student } from '../models/Student';
+import { PaymentIntent } from '../models/PaymentIntent';
 
+
+import { Subscription } from '../models/Subscription';
+import { SubscriptionService } from './subscription.service';
 import { signJwt } from '../utils/jwt';
 
 export class AuthService {
+
+
+
+
+
   static async registerSchool(data: any) {
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-      const school = await School.create(
-        [{ name: data.schoolName, email: data.schoolEmail }],
+      /* ===============================
+         0️⃣ FETCH VERIFIED PAYMENT (SOURCE OF TRUTH)
+      =============================== */
+      const intent = await PaymentIntent.findOne({
+        orderId: data.orderId,
+        paymentId: data.paymentId,
+        status: 'paid'
+      }).session(session);
+
+      if (!intent) {
+        throw new Error('Invalid or unpaid payment');
+      }
+
+      /* ===============================
+         1️⃣ CREATE SCHOOL
+      =============================== */
+      const [school] = await School.create(
+        [
+          {
+            name: data.schoolName,
+            email: data.schoolEmail,
+            phone: data.phone,
+            address: data.address,
+            pincode: data.pincode
+          }
+        ],
         { session }
       );
 
-      const principal = await Principal.create(
-        [{
-          name: data.principalName,
-          email: data.principalEmail,
-          password: data.principalPassword,
-          schoolId: school[0]._id
-        }],
+      /* ===============================
+         2️⃣ CREATE PRINCIPAL
+      =============================== */
+      const [principal] = await Principal.create(
+        [
+          {
+            name: data.principalName,
+            email: data.principalEmail,
+            password: data.principalPassword,
+            schoolId: school._id
+          }
+        ],
         { session }
       );
 
-   
+      school.principalId = principal._id;
 
-      school[0].principalId = principal[0]._id;
+      /* ===============================
+         3️⃣ CREATE SUBSCRIPTION (SAFE)
+      =============================== */
+      const subscription =
+        await SubscriptionService.createSubscription(
+          {
+            schoolId: school._id,
+            planId: intent.planId,
+            orderId: intent.orderId,
+            paymentId: intent.paymentId!,
+            enteredStudents: intent.enteredStudents,
+            futureStudents: intent.futureStudents,
+            couponCode: intent.couponCode
+          },
+          session
+        );
 
-      await school[0].save({ session });
+      school.subscriptionId = subscription._id;
+      await school.save({ session });
 
+      // 4️⃣ MARK PAYMENT AS USED
+      intent.status = 'used';
+      await intent.save({ session });
+
+      /* ===============================
+         4️⃣ COMMIT TRANSACTION
+      =============================== */
       await session.commitTransaction();
 
+      /* ===============================
+         5️⃣ RETURN AUTH RESPONSE
+      =============================== */
       return {
-        token: signJwt({
-          userId: principal[0]._id.toString(),
+        accessToken: signJwt({
+          userId: principal._id.toString(),
           role: 'principal',
-          schoolId: school[0]._id.toString()
-        })
+          schoolId: school._id.toString()
+        }),
+        user: {
+          id: principal._id.toString(),
+          name: principal.name,
+          email: principal.email,
+          role: 'principal'
+        }
       };
-    } catch (e) {
+    } catch (error) {
       await session.abortTransaction();
-      throw e;
+      throw error;
     } finally {
       session.endSession();
     }
@@ -52,9 +122,11 @@ export class AuthService {
 
 
 
-   /* ======================================================
-     PRINCIPAL LOGIN
-  ====================================================== */
+
+
+  /* ======================================================
+    PRINCIPAL LOGIN
+ ====================================================== */
   static async loginPrincipal(email: string, password: string) {
     const principal = await Principal.findOne({ email }).select('+password');
 
@@ -69,7 +141,7 @@ export class AuthService {
     }
 
     return {
-      token: signJwt({
+      accessToken: signJwt({
         userId: principal._id.toString(),
         role: 'principal',
         schoolId: principal.schoolId.toString()
@@ -78,9 +150,9 @@ export class AuthService {
   }
 
 
-   /* ======================================================
-     UPDATE PRINCIPAL PROFILE
-  ====================================================== */
+  /* ======================================================
+    UPDATE PRINCIPAL PROFILE
+ ====================================================== */
   static async updatePrincipal(
     principalId: string,
     data: { name?: string; password?: string }
@@ -109,73 +181,110 @@ export class AuthService {
   /* ======================================================
    GET PRINCIPAL PROFILE
 ====================================================== */
-static async getPrincipal(principalId: string) {
-  const principal = await Principal.findById(principalId).select(
-    'name email phone schoolId createdAt'
-  );
+  static async getPrincipal(principalId: string) {
+    const principal = await Principal.findById(principalId).select(
+      'name email phone schoolId createdAt'
+    );
 
-  if (!principal) {
-    throw new Error('Principal not found');
+    if (!principal) {
+      throw new Error('Principal not found');
+    }
+
+    return principal;
   }
 
-  return principal;
-}
 
+  /// teacher login
 
-/// teacher login
+  static async loginTeacher(email: string, password: string) {
+    const teacher = await Teacher.findOne({ email }).select('+password');
 
-static async loginTeacher(email: string, password: string) {
-  const teacher = await Teacher.findOne({ email }).select('+password');
+    if (!teacher) {
+      throw new Error('Invalid email or password');
+    }
 
-  if (!teacher) {
-    throw new Error('Invalid email or password');
+    const isMatch = await teacher.comparePassword(password);
+    if (!isMatch) {
+      throw new Error('Invalid email or password');
+    }
+
+    return {
+      accessToken: signJwt({
+        userId: teacher._id.toString(),
+        role: 'teacher',
+        schoolId: teacher.schoolId.toString()
+      })
+    };
   }
 
-  const isMatch = await teacher.comparePassword(password);
-  if (!isMatch) {
-    throw new Error('Invalid email or password');
+  // static async loginTeacher(email: string, password: string) {
+  //   const teacher = await Teacher.findOne({
+  //     email: email.toLowerCase().trim()
+  //   }).select('+password');
+
+  //   if (!teacher) {
+  //     throw new Error('Invalid email or password');
+  //   }
+
+  //   const isMatch = await teacher.comparePassword(password);
+  //   if (!isMatch) {
+  //     throw new Error('Invalid email or password');
+  //   }
+
+  //   return {
+  //     accessToken: signJwt({
+  //       userId: teacher._id.toString(),
+  //       role: 'teacher',
+  //       schoolId: teacher.schoolId.toString()
+  //     }),
+  //     user: {
+  //       id: teacher._id.toString(),
+  //       name: teacher.name,
+  //       email: teacher.email,
+  //       role: 'teacher'
+  //     }
+  //   };
+  // }
+
+
+  ///student login
+
+  static async loginStudent(email: string, password: string) {
+    const student = await Student.findOne({ email }).select('+password');
+
+    if (!student) {
+      throw new Error('Invalid email or password');
+    }
+
+    const isMatch = await student.comparePassword(password);
+    if (!isMatch) {
+      throw new Error('Invalid email or password');
+    }
+
+    return {
+      accessToken: signJwt({
+        userId: student._id.toString(),
+        role: 'student',
+        schoolId: student.schoolId.toString()
+      })
+    };
   }
-
-  return {
-    token: signJwt({
-      userId: teacher._id.toString(),
-      role: 'teacher',
-      schoolId: teacher.schoolId.toString()
-    })
-  };
-}
-
-///student login
-
-static async loginStudent(email: string, password: string) {
-  const student = await Student.findOne({ email }).select('+password');
-
-  if (!student) {
-    throw new Error('Invalid email or password');
-  }
-
-  const isMatch = await student.comparePassword(password);
-  if (!isMatch) {
-    throw new Error('Invalid email or password');
-  }
-
-  return {
-    token: signJwt({
-      userId: student._id.toString(),
-      role: 'student',
-      schoolId: student.schoolId.toString()
-    })
-  };
-}
 
 
   /*
      LOGOUT (STATELESS JWT)
   */
- static async logout() {
-   
+  static async logout() {
+
     return {
       message: 'Logged out successfully'
     };
   }
 }
+
+
+
+
+
+
+

@@ -19,7 +19,17 @@ export const registerSchoolSchema = z.object({
 
   principalName: z.string().min(3),
   principalEmail: z.email(),
-  principalPassword: z.string().min(6)
+  principalPassword: z.string().min(6),
+
+///for subscription
+  // planId: z.enum(['1Y', '2Y', '3Y']),
+  // enteredStudents: z.number().int().min(1),
+  // futureStudents: z.number().int().min(0).optional(),
+  // couponCode: z.string().optional(),
+
+   /* ---------------- PAYMENT (MANDATORY) ---------------- */
+  orderId: z.string().min(5),
+  paymentId: z.string().min(5)
 });
 
 // Update school profile
@@ -141,4 +151,77 @@ export const updateStudentSchema = z.object({
 export const changePasswordSchema = z.object({
   oldPassword: z.string().min(6),
   newPassword: z.string().min(6)
+});
+
+// for subscription
+// export const couponEnum = z.enum(['FREE_3M', 'FREE_6M']);
+// export const pricePreviewSchema = z.object({
+//  planId: z.enum(['1Y', '2Y', '3Y']),
+//   enteredStudents: z.number().min(1),
+//   futureStudents: z.number().min(0),
+//   couponCode: couponEnum.optional()
+// });
+
+// export const createPaymentSchema = pricePreviewSchema;
+
+
+
+
+/* ======================================================
+   ENUMS
+====================================================== */
+
+export const planEnum = z.enum(['1Y', '2Y', '3Y']);
+
+export const couponEnum = z.enum(['FREE_3M', 'FREE_6M']);
+
+/* ======================================================
+   PRICE PREVIEW / PAYMENT INPUT
+====================================================== */
+
+export const pricePreviewSchema = z.object({
+  planId: planEnum,
+
+  // number of students entered by user
+  enteredStudents: z.coerce.number().int().min(1),
+
+  // students joining later (optional)
+  futureStudents: z.coerce.number().int().min(0).optional(),
+
+  // optional coupon
+  couponCode: couponEnum.optional()
+});
+
+/*
+  Payment creation uses EXACT SAME payload
+  (Never trust frontend price — backend recalculates)
+*/
+export const createPaymentSchema = pricePreviewSchema;
+
+/* ======================================================
+   PAYMENT VERIFICATION
+====================================================== */
+
+export const verifyPaymentSchema = z.object({
+  razorpay_order_id: z.string().min(5),
+  razorpay_payment_id: z.string().min(5),
+  razorpay_signature: z.string().min(10)
+});
+
+
+//renew subscription schema
+export const renewSubscriptionSchema = z.object({
+  body: z.object({
+    schoolId: z
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid schoolId'),
+
+    orderId: z
+      .string()
+      .min(1, 'orderId is required'),
+
+    paymentId: z
+      .string()
+      .min(1, 'paymentId is required')
+  })
 });
