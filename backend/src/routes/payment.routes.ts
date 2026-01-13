@@ -1,16 +1,23 @@
 
 
 
+
 import { Router } from 'express';
-import {  createPaymentIntent, verifyPayment } from '../controllers/payment.controller';
+import {
+  createPaymentIntent,
+  verifyPayment
+} from '../controllers/payment.controller';
 
 const router = Router();
 
 /* ===============================
-   RAZORPAY PAYMENT VERIFY
-=============================== */
+   CREATE PAYMENT INTENT
+================================ */
 router.post('/create-intent', createPaymentIntent);
+
+/* ===============================
+   VERIFY PAYMENT (RAZORPAY)
+================================ */
 router.post('/verify', verifyPayment);
 
 export default router;
-

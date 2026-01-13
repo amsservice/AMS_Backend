@@ -1,22 +1,35 @@
+
+
+
+
 import { Router } from 'express';
 import {
   createSession,
   getSessions,
-  updateSession
+  updateSession,
+  deleteSession
 } from '../controllers/session.controller';
 
 import { authMiddleware } from '../middleware/auth.middleware';
 import { allowRoles } from '../middleware/role.middleware';
 import { validate } from '../middleware/validate.middleware';
+
 import {
   createSessionSchema,
-  updateSessionSchema
+  updateSessionSchema,
+  deleteSessionSchema
 } from '../config/zod.schema';
 
 const router = Router();
 
+/* =========================
+   AUTH MIDDLEWARE
+========================= */
 router.use(authMiddleware);
 
+/* =========================
+   CREATE SESSION (Principal)
+========================= */
 router.post(
   '/',
   allowRoles(['principal']),
@@ -24,8 +37,16 @@ router.post(
   createSession
 );
 
+/* =========================
+   GET SESSIONS (Role-based)
+========================= */
 router.get('/', getSessions);
 
+/* =========================
+   UPDATE SESSION
+   - Edit details
+   - Activate / Deactivate
+========================= */
 router.put(
   '/:id',
   allowRoles(['principal']),
@@ -33,4 +54,16 @@ router.put(
   updateSession
 );
 
+/* =========================
+   DELETE SESSION
+   - ONLY inactive sessions
+========================= */
+
+router.delete(
+  '/:id',
+  allowRoles(['principal']),
+  deleteSession
+);
+
 export default router;
+

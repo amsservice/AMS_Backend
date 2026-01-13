@@ -1,3 +1,5 @@
+
+
 import { Schema, model, Document, Types } from 'mongoose';
 
 export interface SchoolDoc extends Document {
@@ -7,8 +9,15 @@ export interface SchoolDoc extends Document {
   address?: string;
   pincode?: string;
 
-  principalId?: Types.ObjectId;      // admin user
-  subscriptionId?: Types.ObjectId;   // plaan
+  principalId?: Types.ObjectId;
+  subscriptionId?: Types.ObjectId;
+
+  // 🔐 EMAIL VERIFICATION
+  isEmailVerified: boolean;
+  emailOtp?: string;
+  otpExpires?: Date;
+  otpResendCount?: number;
+  lastOtpSentAt?: Date;
 
   isActive: boolean;
 
@@ -46,11 +55,29 @@ const SchoolSchema = new Schema<SchoolDoc>(
       ref: 'Subscription'
     },
 
+    // ✅ NEW FIELDS
+    isEmailVerified: {
+      type: Boolean,
+      default: false
+    },
+
+    emailOtp: String,
+    otpExpires: Date,
+
     isActive: {
       type: Boolean,
       default: true
-    }
+    },
+    otpResendCount: {
+  type: Number,
+  default: 0
+},
+
+lastOtpSentAt: Date,
+
+    
   },
+  
   { timestamps: true }
 );
 

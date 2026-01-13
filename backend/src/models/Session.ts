@@ -1,3 +1,6 @@
+
+
+
 import { Schema, model, Document, Types } from 'mongoose';
 
 export interface SessionDoc extends Document {
@@ -10,10 +13,21 @@ export interface SessionDoc extends Document {
 
 const SessionSchema = new Schema<SessionDoc>(
   {
-    name: { type: String, required: true },
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
 
-    startDate: { type: Date, required: true },
-    endDate: { type: Date, required: true },
+    startDate: {
+      type: Date,
+      required: true
+    },
+
+    endDate: {
+      type: Date,
+      required: true
+    },
 
     schoolId: {
       type: Schema.Types.ObjectId,
@@ -22,12 +36,27 @@ const SessionSchema = new Schema<SessionDoc>(
       index: true
     },
 
-    isActive: { type: Boolean, default: true }
+    // ✅ Default FALSE (safer)
+    isActive: {
+      type: Boolean,
+      default: false
+    }
   },
-  { timestamps: true }
+  {
+    timestamps: true
+  }
 );
 
-// one active session per school
-SessionSchema.index({ schoolId: 1, isActive: 1 });
+/* 
+  ✅ DATABASE-LEVEL GUARANTEE
+  Only ONE active session per school
+*/
+SessionSchema.index(
+  { schoolId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { isActive: true }
+  }
+);
 
 export const Session = model<SessionDoc>('Session', SessionSchema);
