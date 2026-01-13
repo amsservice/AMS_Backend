@@ -124,7 +124,8 @@ import {
   changeMyPassword,
   getActiveTeacherCount,
   deactivateTeacher,
-  swapTeacherClasses
+  swapTeacherClasses,
+   getMyFullProfile
 } from '../controllers/teacher.controller';
 
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -226,6 +227,14 @@ router.delete(
   '/:id',
   allowRoles(['principal']),
   deleteTeacher
+);
+
+
+//get full profile
+router.get(
+  '/profile',
+  authMiddleware,
+  getMyFullProfile
 );
 
 export default router;

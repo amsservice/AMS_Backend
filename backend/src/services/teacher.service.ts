@@ -318,4 +318,33 @@ static async countActiveTeachers(schoolId: Types.ObjectId) {
       throw error;
     }
   }
+
+
+  /* ======================================================
+   TEACHER / PRINCIPAL
+   GET FULL TEACHER PROFILE (ALL DB DETAILS)
+====================================================== */
+static async getTeacherFullProfile(teacherId: string) {
+  const teacher = await Teacher.findById(teacherId)
+    .select('-password') // never expose password
+    .populate({
+      path: 'schoolId',
+      select: 'name'
+    })
+    .populate({
+      path: 'history.sessionId',
+      select: 'name'
+    })
+    .populate({
+      path: 'history.classId',
+      select: 'name section'
+    })
+    .lean();
+
+  if (!teacher) {
+    throw new Error('Teacher not found');
+  }
+
+  return teacher;
+}
 }

@@ -5,7 +5,7 @@ import { allowRoles } from '../middleware/role.middleware';
 
 const router = Router();
 
-router.use(authMiddleware, allowRoles(['principal']));
+router.use(authMiddleware, allowRoles(['principal', 'teacher', 'student']));
 
 router.get('/me', getMySchool);
 router.put('/me', updateMySchool);

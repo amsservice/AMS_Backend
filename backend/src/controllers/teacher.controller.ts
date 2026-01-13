@@ -214,3 +214,28 @@ export const swapTeacherClasses = async (
 
   res.status(200).json(result);
 };
+
+/* ======================================================
+   TEACHER (SELF)
+   GET FULL TEACHER PROFILE (ALL DETAILS)
+====================================================== */
+export const getMyFullProfile = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const teacherId = req.user!.userId;
+
+    const teacher = await TeacherService.getTeacherFullProfile(teacherId);
+
+    res.status(200).json({
+      success: true,
+      data: teacher
+    });
+  } catch (error: any) {
+    res.status(404).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
