@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createStudent, getMyProfile,updateStudentByTeacher,changeMyPassword } from '../controllers/student.controller';
+import { createStudent, getMyProfile,updateStudentByTeacher,changeMyPassword,getTotalStudentsClassWise,getMyStudents } from '../controllers/student.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { allowRoles } from '../middleware/role.middleware';
 import { validate } from '../middleware/validate.middleware';
@@ -35,7 +35,7 @@ router.get(
 router.put(
   '/:id',
   authMiddleware,
-  allowRoles(['teacher']),
+  allowRoles(['teacher','principal']),
   validate(updateStudentSchema),
   updateStudentByTeacher
 );
@@ -49,6 +49,27 @@ router.put(
   allowRoles(['student']),
   validate(changePasswordSchema),
   changeMyPassword
+);
+
+
+/* =====================================================
+   PRINCIPAL DASHBOARD get all student class wise
+===================================================== */
+router.get(
+  '/stats/class-wise',
+  authMiddleware,
+  allowRoles(['principal']),
+  getTotalStudentsClassWise
+);
+
+/* =====================================================
+   TEACHER: MY STUDENTS 
+===================================================== */
+router.get(
+  '/my-students',
+  authMiddleware,
+  allowRoles(['teacher']),
+  getMyStudents
 );
 
 export default router;
