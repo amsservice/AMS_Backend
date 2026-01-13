@@ -225,3 +225,15 @@ export const renewSubscriptionSchema = z.object({
       .min(1, 'paymentId is required')
   })
 });
+
+/* ======================================================
+  CONTACT (PUBLIC)
+====================================================== */
+
+export const contactMessageSchema = z.object({
+  name: z.string().min(2).max(80),
+  email: z.email(),
+  phone: z.string().min(10).max(20).optional(),
+  subject: z.string().min(2).max(120).optional(),
+  message: z.string().min(10).max(2000)
+});
