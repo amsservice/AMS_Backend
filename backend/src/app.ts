@@ -13,6 +13,7 @@ import studentRoutes from "./routes/student.routes";
 import subscriptionRoutes from "./routes/subscription.routes";
 import paymentRoutes from "./routes/payment.routes"; 
 import holidayRoutes from './routes/holiday.routes';
+import contactRoutes from './routes/contact.routes';
 dotenv.config();
 
 const app = express();
@@ -41,6 +42,7 @@ app.use("/api/student",studentRoutes);
 app.use("/api/subscription",subscriptionRoutes);
 app.use("/api/payment",paymentRoutes);
 app.use('/api/holidays', holidayRoutes);
+app.use('/api/contact', contactRoutes);
 
 
 
