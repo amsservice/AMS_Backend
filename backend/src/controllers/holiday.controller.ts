@@ -12,10 +12,10 @@ export const createHoliday = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { name, date, description, category } = req.body;
+    const { name,startDate, endDate, description, category } = req.body;
 
     // ✅ Validate required fields
-    if (!name || !date || !category) {
+    if (!name || !startDate || !category) {
       res.status(400).json({
         message: 'Name, date and category are required'
       });
@@ -38,7 +38,8 @@ export const createHoliday = async (
     // ✅ Create holiday
     const holiday = await HolidayService.createHoliday({
       name,
-      date: new Date(date),
+     startDate: new Date(startDate),
+      endDate: endDate ? new Date(endDate) : undefined,
       description,
       category,
       schoolId:new Types.ObjectId(req.user!.schoolId),
@@ -103,28 +104,33 @@ export const getHolidays = async (
 export const updateHoliday = async (
   req: AuthRequest,
   res: Response
-): Promise<void> => {
+) => {
   try {
+    const session = await Session.findOne({
+      schoolId: req.user!.schoolId,
+      isActive: true
+    });
+
+    if (!session) {
+      res.status(400).json({ message: 'No active session found' });
+      return;
+    }
+
     const updated = await HolidayService.updateHoliday(
-      req.params.id as unknown as Types.ObjectId,
-      new Types.ObjectId(req.user!.schoolId)
-,
+      new Types.ObjectId(req.params.id),
+      new Types.ObjectId(req.user!.schoolId),
+      session._id,
       req.body
     );
 
     if (!updated) {
-      res.status(404).json({
-        message: 'Holiday not found'
-      });
+      res.status(404).json({ message: 'Holiday not found' });
       return;
     }
 
     res.json(updated);
   } catch (error: any) {
-    console.error('UPDATE HOLIDAY ERROR:', error);
-    res.status(500).json({
-      message: 'Failed to update holiday'
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
