@@ -22,7 +22,9 @@ const SessionSchema = new Schema<SessionDoc>(
       index: true
     },
 
-    isActive: { type: Boolean, default: true }
+
+    //true->false
+    isActive: { type: Boolean, default: false }
   },
   { timestamps: true }
 );
