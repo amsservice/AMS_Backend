@@ -2,7 +2,8 @@ import { Router } from 'express';
 import {
   createSession,
   getSessions,
-  updateSession
+  updateSession,
+  deleteSession
 } from '../controllers/session.controller';
 
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -31,6 +32,18 @@ router.put(
   allowRoles(['principal']),
   validate(updateSessionSchema),
   updateSession
+);
+
+
+/* =========================
+   DELETE SESSION
+   - ONLY inactive sessions
+========================= */
+
+router.delete(
+  '/:id',
+  allowRoles(['principal']),
+  deleteSession
 );
 
 export default router;
