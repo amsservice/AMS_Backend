@@ -28,8 +28,8 @@ export const registerSchoolSchema = z.object({
   // couponCode: z.string().optional(),
 
    /* ---------------- PAYMENT (MANDATORY) ---------------- */
-  orderId: z.string().min(5),
-  paymentId: z.string().min(5)
+  // orderId: z.string().min(5),
+  // paymentId: z.string().min(5)
 });
 
 // Update school profile
@@ -226,6 +226,41 @@ export const renewSubscriptionSchema = z.object({
   })
 });
 
+
+/* ======================================================
+   VERIFY EMAIL OTP SCHEMA
+====================================================== */
+export const verifyOtpSchema = z.object({
+  email: z
+    .string()
+    .email({ message: 'Invalid email address' })
+    .regex(/@gmail\.com$/, {
+      message: 'Only Gmail addresses are allowed'
+    }),
+
+  otp: z
+    .string()
+    .length(6, { message: 'OTP must be exactly 6 digits' })
+    .regex(/^\d{6}$/, {
+      message: 'OTP must contain only numbers'
+    })
+});
+
+/* ===============================
+   RESEND OTP
+=============================== */
+export const resendOtpSchema = z.object({
+  email: z
+    .string().
+    email('Invalid email address')
+});
+
+export const deleteSessionSchema = z.object({
+  params: z.object({
+    id: z.string().min(1)
+  })
+});
+
 /* ======================================================
   CONTACT (PUBLIC)
 ====================================================== */
@@ -237,3 +272,5 @@ export const contactMessageSchema = z.object({
   subject: z.string().min(2).max(120).optional(),
   message: z.string().min(10).max(2000)
 });
+
+
