@@ -41,19 +41,47 @@ export const verifySchoolOtp = async (req: Request, res: Response) => {
 /* ======================================================
    PRINCIPAL LOGIN (OTP + SUBSCRIPTION REQUIRED)
 ====================================================== */
+// export const loginPrincipal = async (req: Request, res: Response) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     const result = await AuthService.loginPrincipal(email, password);
+
+//     res.status(200).json(result);
+//   } catch (error: any) {
+//     res.status(400).json({
+//       message: error.message || "Login failed"
+//     });
+//   }
+// };
+
+/* ======================================================
+   PRINCIPAL LOGIN (SCHOOL CODE + EMAIL + PASSWORD)
+====================================================== */
 export const loginPrincipal = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, schoolCode } = req.body;
 
-    const result = await AuthService.loginPrincipal(email, password);
+    if (!schoolCode) {
+      return res.status(400).json({
+        message: 'School code is required'
+      });
+    }
+
+    const result = await AuthService.loginPrincipal(
+      email,
+      password,
+      Number(schoolCode)
+    );
 
     res.status(200).json(result);
   } catch (error: any) {
     res.status(400).json({
-      message: error.message || "Login failed"
+      message: error.message || 'Login failed'
     });
   }
 };
+
 
 /* ======================================================
    LOGOUT

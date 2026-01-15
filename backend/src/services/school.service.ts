@@ -148,4 +148,30 @@ export class SchoolService {
       isActive: school.isActive
     };
   }
+
+
+  /* ===============================
+   GET SCHOOL BY SCHOOL CODE
+=============================== */
+static async getSchoolByCode(schoolCode: number) {
+  if (!schoolCode || isNaN(schoolCode)) {
+    throw new Error('Invalid school code');
+  }
+
+  const school = await School.findOne(
+    { schoolCode, isActive: true },
+    'name schoolCode'
+  ).lean();
+
+  if (!school) {
+    throw new Error('Invalid school code');
+  }
+
+  return {
+    id: school._id.toString(),
+    name: school.name,
+    schoolCode: school.schoolCode
+  };
+}
+
 }
