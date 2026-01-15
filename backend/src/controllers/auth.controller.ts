@@ -7,10 +7,26 @@ import { AuthRequest } from '../middleware/auth.middleware';
 /* ======================================================
    SCHOOL REGISTER (GMAIL + OTP)
 ====================================================== */
+// export const registerSchool = async (req: Request, res: Response) => {
+//   const result = await AuthService.registerSchool(req.body);
+//   res.status(201).json(result);
+// };
+
 export const registerSchool = async (req: Request, res: Response) => {
-  const result = await AuthService.registerSchool(req.body);
-  res.status(201).json(result);
+  try {
+    const result = await AuthService.registerSchool(req.body);
+    res.status(201).json(result);
+
+  } catch (error: any) {
+    console.error('Registration error:', error);
+
+    res.status(error.statusCode || 400).json({
+      success: false,
+      message: error.message || 'Registration failed',
+    });
+  }
 };
+
 
 /* ======================================================
    VERIFY SCHOOL EMAIL OTP

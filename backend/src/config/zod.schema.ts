@@ -13,8 +13,8 @@ export const registerSchoolSchema = z.object({
   schoolName: z.string().min(3),
   schoolEmail: z.email(),
 
-  phone: z.string().min(10).max(15).optional(),
-  address: z.string().optional(),
+  phone: z.string().min(10).max(12).optional(),
+  address: z.string().min(10).max(15).optional(),
   pincode: z.string().optional(),
 
   principalName: z.string().min(3),
