@@ -38,3 +38,24 @@ export const updateMySchool = async (
     next(error);
   }
 };
+
+
+/* ======================================================
+   GET SCHOOL BY CODE
+====================================================== */
+export const getSchoolByCode = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const schoolCode = Number(req.params.code);
+
+    const school = await SchoolService.getSchoolByCode(schoolCode);
+
+    res.status(200).json({ school });
+  } catch (error) {
+    next(error); // centralized error handler
+  }
+};
+
