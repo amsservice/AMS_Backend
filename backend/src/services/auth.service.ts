@@ -49,9 +49,17 @@ export class AuthService {
       phone,
       address,
       pincode,
+      schoolType,
+      board,
+      city,
+      district,
+      state,
+      //principal
       principalName,
       principalEmail,
-      principalPassword
+      principalPassword,
+      principalGender,
+      principalExperience
     } = data;
 
     // 1️⃣ Gmail validation
@@ -94,6 +102,11 @@ export class AuthService {
             phone,
             address,
             pincode,
+            schoolType,
+            board,
+            city,
+            district,
+            state,
             isEmailVerified: false,
             emailOtp: otp,
             otpExpires: new Date(Date.now() + 10 * 60 * 1000)
@@ -112,6 +125,8 @@ export class AuthService {
             name: principalName,
             email: principalEmail,
             password: principalPassword,
+            gender: principalGender, // optional
+            yearsOfExperience: principalExperience, // optional
             schoolId: school._id
           }
         ],
@@ -140,76 +155,76 @@ export class AuthService {
      VERIFY SCHOOL EMAIL OTP
   ====================================================== */
   static async activateSubscription(data: {
-  orderId: string;
-  paymentId: string;
-  schoolEmail: string;
-}) {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+    orderId: string;
+    paymentId: string;
+    schoolEmail: string;
+  }) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-  try {
-    const normalizedEmail = data.schoolEmail.toLowerCase().trim();
+    try {
+      const normalizedEmail = data.schoolEmail.toLowerCase().trim();
 
-    /* 1️⃣ Fetch paid intent */
-    const intent = await PaymentIntent.findOne({
-      orderId: data.orderId,
-      paymentId: data.paymentId,
-      status: 'paid'
-    }).session(session);
+      /* 1️⃣ Fetch paid intent */
+      const intent = await PaymentIntent.findOne({
+        orderId: data.orderId,
+        paymentId: data.paymentId,
+        status: 'paid'
+      }).session(session);
 
-    if (!intent) {
-      throw new Error('Invalid or unpaid payment');
-    }
+      if (!intent) {
+        throw new Error('Invalid or unpaid payment');
+      }
 
-    /* 2️⃣ Fetch school */
-    const school = await School.findOne({
-      email: normalizedEmail
-    }).session(session);
+      /* 2️⃣ Fetch school */
+      const school = await School.findOne({
+        email: normalizedEmail
+      }).session(session);
 
-    if (!school) {
-      throw new Error('School not found for this email');
-    }
+      if (!school) {
+        throw new Error('School not found for this email');
+      }
 
-    if (!school.isEmailVerified) {
-      throw new Error('Email not verified');
-    }
+      if (!school.isEmailVerified) {
+        throw new Error('Email not verified');
+      }
 
-    /* 3️⃣ Prevent duplicate subscription */
-    if (school.subscriptionId) {
+      /* 3️⃣ Prevent duplicate subscription */
+      if (school.subscriptionId) {
+        await session.commitTransaction();
+        return;
+      }
+
+      /* 4️⃣ Create subscription */
+      const subscription = await SubscriptionService.createSubscription(
+        {
+          schoolId: school._id,
+          planId: intent.planId,
+          orderId: intent.orderId,
+          paymentId: intent.paymentId!,
+          enteredStudents: intent.enteredStudents,
+          futureStudents: intent.futureStudents,
+          couponCode: intent.couponCode
+        },
+        session
+      );
+
+      /* 5️⃣ Attach subscription to school */
+      school.subscriptionId = subscription._id;
+      await school.save({ session });
+
+      /* 6️⃣ Mark intent as used */
+      intent.status = 'used';
+      await intent.save({ session });
+
       await session.commitTransaction();
-      return;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    /* 4️⃣ Create subscription */
-    const subscription = await SubscriptionService.createSubscription(
-      {
-        schoolId: school._id,
-        planId: intent.planId,
-        orderId: intent.orderId,
-        paymentId: intent.paymentId!,
-        enteredStudents: intent.enteredStudents,
-        futureStudents: intent.futureStudents,
-        couponCode: intent.couponCode
-      },
-      session
-    );
-
-    /* 5️⃣ Attach subscription to school */
-    school.subscriptionId = subscription._id;
-    await school.save({ session });
-
-    /* 6️⃣ Mark intent as used */
-    intent.status = 'used';
-    await intent.save({ session });
-
-    await session.commitTransaction();
-  } catch (error) {
-    await session.abortTransaction();
-    throw error;
-  } finally {
-    session.endSession();
   }
-}
 
   /* ======================================================
      PRINCIPAL LOGIN (OTP + SUBSCRIPTION REQUIRED)
@@ -218,9 +233,9 @@ export class AuthService {
     // const principal = await Principal.findOne({ email }).select('+password');
     const normalizedEmail = email.toLowerCase().trim();
 
-const principal = await Principal
-  .findOne({ email: normalizedEmail })
-  .select('+password');
+    const principal = await Principal
+      .findOne({ email: normalizedEmail })
+      .select('+password');
     if (!principal) {
       throw new Error('Invalid email or password');
     }
@@ -232,8 +247,8 @@ const principal = await Principal
     }
 
     if (!school.subscriptionId) {
-  throw new Error('Subscription not active. Please complete payment.');
-}
+      throw new Error('Subscription not active. Please complete payment.');
+    }
 
     const isMatch = await principal.comparePassword(password);
     if (!isMatch) {
@@ -334,13 +349,13 @@ const principal = await Principal
     }
 
     return principal;
-  
-}
+
+  }
 
 
- /* ======================================================
-     VERIFY SCHOOL EMAIL OTP
-  ====================================================== */
+  /* ======================================================
+      VERIFY SCHOOL EMAIL OTP
+   ====================================================== */
   static async verifySchoolOtp(email: string, otp: string) {
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -376,55 +391,55 @@ const principal = await Principal
   /* ======================================================
    RESEND OTP (RATE LIMITED)
 ====================================================== */
-static async resendSchoolOtp(email: string) {
-  const school = await School.findOne({
-    email: email.toLowerCase().trim()
-  });
+  static async resendSchoolOtp(email: string) {
+    const school = await School.findOne({
+      email: email.toLowerCase().trim()
+    });
 
-  if (!school) {
-    throw new Error('School not found');
+    if (!school) {
+      throw new Error('School not found');
+    }
+
+    if (school.isEmailVerified) {
+      throw new Error('Email already verified');
+    }
+
+    const now = new Date();
+
+    // ⏳ Cooldown: 60 seconds
+    if (
+      school.lastOtpSentAt &&
+      now.getTime() - school.lastOtpSentAt.getTime() < 60 * 1000
+    ) {
+      throw new Error('Please wait 60 seconds before resending OTP');
+    }
+
+    // 🚫 Max 5 OTPs per hour
+    if (
+      school.otpResendCount &&
+      school.otpResendCount >= 5 &&
+      school.lastOtpSentAt &&
+      now.getTime() - school.lastOtpSentAt.getTime() < 60 * 60 * 1000
+    ) {
+      throw new Error('Too many OTP requests. Try again later.');
+    }
+
+    // 🔢 Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    school.emailOtp = otp;
+    school.otpExpires = new Date(now.getTime() + 10 * 60 * 1000);
+    school.lastOtpSentAt = now;
+    school.otpResendCount = (school.otpResendCount || 0) + 1;
+
+    await school.save();
+
+    await sendOtp(school.email, otp);
+
+    return {
+      message: 'OTP resent successfully'
+    };
   }
-
-  if (school.isEmailVerified) {
-    throw new Error('Email already verified');
-  }
-
-  const now = new Date();
-
-  // ⏳ Cooldown: 60 seconds
-  if (
-    school.lastOtpSentAt &&
-    now.getTime() - school.lastOtpSentAt.getTime() < 60 * 1000
-  ) {
-    throw new Error('Please wait 60 seconds before resending OTP');
-  }
-
-  // 🚫 Max 5 OTPs per hour
-  if (
-    school.otpResendCount &&
-    school.otpResendCount >= 5 &&
-    school.lastOtpSentAt &&
-    now.getTime() - school.lastOtpSentAt.getTime() < 60 * 60 * 1000
-  ) {
-    throw new Error('Too many OTP requests. Try again later.');
-  }
-
-  // 🔢 Generate OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-  school.emailOtp = otp;
-  school.otpExpires = new Date(now.getTime() + 10 * 60 * 1000);
-  school.lastOtpSentAt = now;
-  school.otpResendCount = (school.otpResendCount || 0) + 1;
-
-  await school.save();
-
-  await sendOtp(school.email, otp);
-
-  return {
-    message: 'OTP resent successfully'
-  };
-}
 
 }
 
