@@ -18,6 +18,7 @@ export interface SchoolDoc extends Document {
 
   principalId?: Types.ObjectId;      // admin user
   subscriptionId?: Types.ObjectId;   // plaan
+  paymentId?: string;
 
   // 🔐 EMAIL VERIFICATION
   isEmailVerified: boolean;
@@ -99,6 +100,8 @@ const SchoolSchema = new Schema<SchoolDoc>(
       ref: 'Subscription'
     },
 
+    paymentId: String,
+
     // ✅ NEW FIELDS
     isEmailVerified: {
       type: Boolean,
@@ -142,6 +145,5 @@ SchoolSchema.pre('save', async function () {
 
   this.schoolCode = counter.seq; // ✅ 1001, 1002, 1003...
 });
-
 
 export const School = model<SchoolDoc>('School', SchoolSchema);

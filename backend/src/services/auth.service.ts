@@ -211,6 +211,7 @@ export class AuthService {
 
       /* 5️⃣ Attach subscription to school */
       school.subscriptionId = subscription._id;
+      school.paymentId = intent.paymentId;
       await school.save({ session });
 
       /* 6️⃣ Mark intent as used */
@@ -267,56 +268,56 @@ export class AuthService {
   /* ======================================================
    PRINCIPAL LOGIN (SCHOOL CODE + EMAIL + PASSWORD)
 ====================================================== */
-static async loginPrincipal(
-  email: string,
-  password: string,
-  schoolCode: number
-) {
-  const normalizedEmail = email.toLowerCase().trim();
+  static async loginPrincipal(
+    email: string,
+    password: string,
+    schoolCode: number
+  ) {
+    const normalizedEmail = email.toLowerCase().trim();
 
-  // 1️⃣ Find school by schoolCode
-  const school = await School.findOne({
-    schoolCode,
-    isActive: true
-  });
+    // 1️⃣ Find school by schoolCode
+    const school = await School.findOne({
+      schoolCode,
+      isActive: true
+    });
 
-  if (!school) {
-    throw new Error('Invalid school code');
+    if (!school) {
+      throw new Error('Invalid school code');
+    }
+
+    if (!school.isEmailVerified) {
+      throw new Error('Please verify school email first');
+    }
+
+    if (!school.subscriptionId) {
+      throw new Error('Subscription not active. Please complete payment.');
+    }
+
+    // 2️⃣ Find principal under this school
+    const principal = await Principal.findOne({
+      email: normalizedEmail,
+      schoolId: school._id
+    }).select('+password');
+
+    if (!principal) {
+      throw new Error('Invalid email or password');
+    }
+
+    // 3️⃣ Password check
+    const isMatch = await principal.comparePassword(password);
+    if (!isMatch) {
+      throw new Error('Invalid email or password');
+    }
+
+    // 4️⃣ Issue JWT
+    return {
+      accessToken: signJwt({
+        userId: principal._id.toString(),
+        role: 'principal',
+        schoolId: school._id.toString()
+      })
+    };
   }
-
-  if (!school.isEmailVerified) {
-    throw new Error('Please verify school email first');
-  }
-
-  if (!school.subscriptionId) {
-    throw new Error('Subscription not active. Please complete payment.');
-  }
-
-  // 2️⃣ Find principal under this school
-  const principal = await Principal.findOne({
-    email: normalizedEmail,
-    schoolId: school._id
-  }).select('+password');
-
-  if (!principal) {
-    throw new Error('Invalid email or password');
-  }
-
-  // 3️⃣ Password check
-  const isMatch = await principal.comparePassword(password);
-  if (!isMatch) {
-    throw new Error('Invalid email or password');
-  }
-
-  // 4️⃣ Issue JWT
-  return {
-    accessToken: signJwt({
-      userId: principal._id.toString(),
-      role: 'principal',
-      schoolId: school._id.toString()
-    })
-  };
-}
 
 
   /* ======================================================
