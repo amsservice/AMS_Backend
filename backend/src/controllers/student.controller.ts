@@ -56,22 +56,9 @@ export const changeMyPassword = async (
   res.status(200).json(result);
 };
 
-/*
-   STUDENT: GET OWN PROFILE
- */
-// export const getMyProfile = async (req: AuthRequest, res: Response) => {
-//   const studentId = req.user!.userId;
 
-//   const student = await StudentService.getMyProfile(studentId);
-
-//   res.status(200).json(student);
-// };
 export const getMyProfile = async (req: AuthRequest, res: Response) => {
-  // const student = await StudentService.getMyProfile(req.user!.userId);
-
-  // res.status(200).json({
-  //   user: student   // ✅ WRAP INSIDE user
-  // });
+  ;
 
   const student = await StudentService.getMyProfile(req.user!.userId);
   

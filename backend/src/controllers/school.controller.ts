@@ -1,20 +1,3 @@
-// import { Response } from 'express';
-// import { AuthRequest } from '../middleware/auth.middleware';
-// import { SchoolService } from '../services/school.service';
-
-// export const getMySchool = async (req: AuthRequest, res: Response) => {
-//   const school = await SchoolService.getSchool(req.user!.schoolId as any);
-//   res.json(school);
-// };
-
-// export const updateMySchool = async (req: AuthRequest, res: Response) => {
-//   const school = await SchoolService.updateSchool(
-//     req.user!.schoolId as any,
-//     req.body
-//   );
-//   res.json(school);
-// };
-
 
 import { Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
@@ -55,3 +38,24 @@ export const updateMySchool = async (
     next(error);
   }
 };
+
+
+/* ======================================================
+   GET SCHOOL BY CODE
+====================================================== */
+export const getSchoolByCode = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const schoolCode = Number(req.params.code);
+
+    const school = await SchoolService.getSchoolByCode(schoolCode);
+
+    res.status(200).json({ school });
+  } catch (error) {
+    next(error); // centralized error handler
+  }
+};
+

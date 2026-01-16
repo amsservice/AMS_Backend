@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-// import { Types } from 'mongoose';
 import { TeacherService } from '../services/teacher.service';
 import { AuthRequest } from '../middleware/auth.middleware';
 import  { Types } from 'mongoose';

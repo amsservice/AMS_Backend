@@ -6,6 +6,9 @@ export interface PrincipalDoc extends Document {
   email: string;
   password: string;
   phone?: string;
+  // 🆕 NEW FIELDS
+  gender?: 'Male' | 'Female' | 'Other';
+  yearsOfExperience?: number;
   schoolId: Types.ObjectId;
 
   comparePassword(candidate: string): Promise<boolean>;
@@ -35,6 +38,19 @@ const PrincipalSchema = new Schema<PrincipalDoc>(
     },
 
     phone: String,
+
+     // 🆕 Gender (Optional)
+    gender: {
+      type: String,
+      enum: ['Male', 'Female', 'Other']
+    },
+
+    // 🆕 Years of Experience (Optional)
+    yearsOfExperience: {
+      type: Number,
+      min: 0,
+      max: 60
+    },
 
     schoolId: {
       type: Schema.Types.ObjectId,
