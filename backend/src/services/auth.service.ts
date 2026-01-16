@@ -81,7 +81,16 @@ export class AuthService {
     // 4️⃣ Duplicate school email
     const existingSchool = await School.findOne({ email: schoolEmail });
     if (existingSchool) {
-      throw new Error('School email already registered');
+      const err: any = new Error('School email already registered');
+      err.statusCode = 409;
+      err.data = {
+        school: {
+          email: existingSchool.email,
+          paymentId: existingSchool.paymentId ?? null,
+          isEmailVerified: existingSchool.isEmailVerified
+        }
+      };
+      throw err;
     }
 
     // 5️⃣ OTP
@@ -149,6 +158,92 @@ export class AuthService {
     } finally {
       session.endSession();
     }
+  }
+
+  static async updatePendingSchoolRegistration(data: any) {
+    const {
+      schoolName,
+      schoolEmail,
+      phone,
+      address,
+      pincode,
+      schoolType,
+      board,
+      city,
+      district,
+      state,
+      principalName,
+      principalEmail,
+      principalPassword,
+      principalGender,
+      principalExperience
+    } = data;
+
+    const normalizedSchoolEmail = String(schoolEmail).toLowerCase().trim();
+
+    const school = await School.findOne({ email: normalizedSchoolEmail });
+    if (!school) {
+      const err: any = new Error('School not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (school.paymentId) {
+      const err: any = new Error('School email already registered');
+      err.statusCode = 409;
+      err.data = {
+        school: {
+          email: school.email,
+          paymentId: school.paymentId,
+          isEmailVerified: school.isEmailVerified
+        }
+      };
+      throw err;
+    }
+
+    school.name = schoolName;
+    school.phone = phone;
+    school.address = address;
+    school.pincode = pincode;
+    school.schoolType = schoolType;
+    school.board = board;
+    school.city = city;
+    school.district = district;
+    school.state = state;
+
+    if (school.principalId) {
+      const principal = await Principal.findById(school.principalId).select('+password');
+      if (principal) {
+        principal.name = principalName;
+        principal.email = principalEmail;
+        principal.password = principalPassword;
+        principal.gender = principalGender;
+        principal.yearsOfExperience = principalExperience;
+        await principal.save();
+      }
+    }
+
+    let otpSent = false;
+    if (!school.isEmailVerified) {
+      const otp = generateOtp();
+      school.emailOtp = otp;
+      school.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+      await sendOtp(normalizedSchoolEmail, otp);
+      otpSent = true;
+    }
+
+    await school.save();
+
+    return {
+      message: otpSent
+        ? 'OTP sent to Gmail. Please verify email.'
+        : 'School details updated',
+      school: {
+        email: school.email,
+        paymentId: school.paymentId ?? null,
+        isEmailVerified: school.isEmailVerified
+      }
+    };
   }
 
   /* ======================================================

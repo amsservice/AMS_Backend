@@ -1,14 +1,15 @@
-
 import { Router } from 'express';
 import {
   registerSchool,
+  updatePendingSchoolRegistration,
   verifySchoolOtp,
   loginPrincipal,
   logout,
   updatePrincipalProfile,
   getPrincipalProfile,
   loginTeacher,
-  loginStudent
+  loginStudent,
+  resendSchoolOtp
 } from '../controllers/auth.controller';
 
 import { validate } from '../middleware/validate.middleware';
@@ -22,8 +23,6 @@ import {
 
 import { authMiddleware } from '../middleware/auth.middleware';
 import { allowRoles } from '../middleware/role.middleware';
-import { resendSchoolOtp } from '../controllers/auth.controller';
-
 
 const router = Router();
 
@@ -34,6 +33,12 @@ router.post(
   '/register-school',
   validate(registerSchoolSchema),
   registerSchool
+);
+
+router.put(
+  '/register-school',
+  validate(registerSchoolSchema),
+  updatePendingSchoolRegistration
 );
 
 /* ======================================================
