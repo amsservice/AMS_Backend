@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { ENV } from "./config/env";
 
 
 //  import auth routes
@@ -19,18 +20,24 @@ dotenv.config();
 
 const app = express();
 
+// CORS configuration based on environment
+const corsOptions = {
+  origin: ENV.NODE_ENV === 'development' 
+    ? ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'http://127.0.0.1:3001']
+    : ENV.FRONTEND_URL 
+      ? [ENV.FRONTEND_URL] 
+      : [],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  credentials: true,
+  exposedHeaders: ['Set-Cookie'],
+  maxAge: 86400, // 24 hours
+  optionsSuccessStatus: 204
+};
 
+app.use(cors(corsOptions));
 
-
-app.use(
-  cors({
-    origin: "*", // ✅ OK now
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-  })
-);
 // Middlewares
-// app.use(cors());
 app.use(express.json());
 
 //  Mount routes
