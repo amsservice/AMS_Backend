@@ -13,6 +13,15 @@ export const envSchema = z.object({
 
   JWT_SECRET: z
     .string()
-    .min(10, 'JWT_SECRET must be at least 10 characters')
+    .min(10, 'JWT_SECRET must be at least 10 characters'),
+
+  NODE_ENV: z
+    .string()
+    .optional()
+    .default('development'),
+
+  FRONTEND_URL: z
+    .string()
+    .optional(),
 });
- export default envSchema;
+export default envSchema;

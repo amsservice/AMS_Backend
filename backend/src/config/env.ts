@@ -36,4 +36,6 @@ export const ENV = {
   PORT: parsedEnv.data.PORT,
   MONGO_URI: parsedEnv.data.MONGO_URI,
   JWT_SECRET: parsedEnv.data.JWT_SECRET,
+  NODE_ENV: parsedEnv.data.NODE_ENV,
+  FRONTEND_URL: parsedEnv.data.FRONTEND_URL,
 };
