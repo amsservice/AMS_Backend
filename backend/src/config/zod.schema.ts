@@ -9,44 +9,200 @@ export const loginSchema = z.object({
 });
 
 // School Registration (First-time onboarding)
+// export const registerSchoolSchema = z.object({
+//   schoolName: z.string().min(3),
+//   schoolEmail: z.email(),
+
+//   phone: z.string().min(10).max(12).optional(),
+//   address: z.string().min(10).max(15).optional(),
+//   pincode: z.string().optional(),
+
+//   principalName: z.string().min(3),
+//   principalEmail: z.email(),
+//   principalPassword: z.string().min(6),
+
+
+// });
+
 export const registerSchoolSchema = z.object({
-  schoolName: z.string().min(3),
-  schoolEmail: z.email(),
+  /* ===============================
+     SCHOOL DETAILS
+  =============================== */
+  schoolName: z.string().min(3, 'School name must be at least 3 characters'),
 
-  phone: z.string().min(10).max(15).optional(),
-  address: z.string().optional(),
-  pincode: z.string().optional(),
+  schoolEmail: z
+    .string()
+    .email('Invalid email format')
+    .endsWith('@gmail.com', 'Only Gmail addresses are allowed'),
 
-  principalName: z.string().min(3),
-  principalEmail: z.email(),
-  principalPassword: z.string().min(6),
+  phone: z
+    .string()
+    .min(10, 'Phone number must be at least 10 digits')
+    .max(12, 'Phone number must be at most 12 digits')
+    .optional(),
 
-///for subscription
-  // planId: z.enum(['1Y', '2Y', '3Y']),
-  // enteredStudents: z.number().int().min(1),
-  // futureStudents: z.number().int().min(0).optional(),
-  // couponCode: z.string().optional(),
+  address: z
+    .string()
+    .min(10, 'Address must be at least 10 characters')
+    .max(200, 'Address too long')
+    .optional(),
 
-   /* ---------------- PAYMENT (MANDATORY) ---------------- */
-  orderId: z.string().min(5),
-  paymentId: z.string().min(5)
+  pincode: z
+    .string()
+    .regex(/^\d{6}$/, 'Pincode must be 6 digits')
+    .optional(),
+
+  schoolType: z
+      .enum(['Government', 'Private', 'Semi-Private'])
+      .optional(),
+
+  board: z
+    .string()
+    .min(2, 'Board is required'),
+
+  city: z
+    .string()
+    .min(2, 'City is required'),
+
+  district: z
+    .string()
+    .min(2, 'District is required'),
+
+  state: z
+    .string()
+    .min(2, 'State is required'),
+
+  /* ===============================
+     PRINCIPAL DETAILS
+  =============================== */
+  principalName: z
+    .string()
+    .min(3, 'Principal name must be at least 3 characters'),
+
+  principalEmail: z
+    .string()
+    .email('Invalid principal email'),
+
+  principalPassword: z
+    .string()
+    .min(6, 'Password must be at least 6 characters'),
+
+  principalGender: z
+    .enum(['Male', 'Female', 'Other'])
+    .optional(),
+
+  principalExperience: z
+    .number()
+    .min(0, 'Experience cannot be negative')
+    .max(60, 'Experience cannot exceed 60 years')
+    .optional()
 });
 
 // Update school profile
-export const updateSchoolSchema = z.object({
-  name: z.string().min(3).optional(),
-  phone: z.string().min(10).max(15).optional(),
-  address: z.string().optional(),
-  pincode: z.string().optional()
-});
+// export const updateSchoolSchema = z.object({
+//   name: z.string().min(3).optional(),
+//   phone: z.string().min(10).max(15).optional(),
+//   address: z.string().optional(),
+//   pincode: z.string().optional()
+// });
 
 
-// Update principal profile (name/password)
-export const updatePrincipalSchema = z.object({
-  name: z.string().min(3).optional(),
-  password: z.string().min(6).optional(),
-  phone: z.string().min(10).max(15).optional(),
-});
+// // Update principal profile (name/password)
+// export const updatePrincipalSchema = z.object({
+//   name: z.string().min(3).optional(),
+//   password: z.string().min(6).optional(),
+//   phone: z.string().min(10).max(15).optional(),
+// });
+
+
+/* ======================================================
+   UPDATE SCHOOL PROFILE
+====================================================== */
+export const updateSchoolSchema = z
+  .object({
+    name: z
+      .string()
+      .min(3, 'School name must be at least 3 characters')
+      .optional(),
+
+    phone: z
+      .string()
+      .min(10, 'Phone number must be at least 10 digits')
+      .max(15, 'Phone number must be at most 15 digits')
+      .optional(),
+
+    address: z
+      .string()
+      .min(5, 'Address must be at least 5 characters')
+      .max(200, 'Address too long')
+      .optional(),
+
+    pincode: z
+      .string()
+      .regex(/^\d{6}$/, 'Pincode must be 6 digits')
+      .optional(),
+
+    /* ===== NEW SCHOOL FIELDS ===== */
+
+    schoolType: z
+      .enum(['Government', 'Private', 'Semi-Private'])
+      .optional(),
+
+    board: z
+      .string()
+      .min(2, 'Board is required')
+      .optional(),
+
+    city: z
+      .string()
+      .min(2, 'City is required')
+      .optional(),
+
+    district: z
+      .string()
+      .min(2, 'District is required')
+      .optional(),
+
+    state: z
+      .string()
+      .min(2, 'State is required')
+      .optional()
+  })
+  .strict();
+
+/* ======================================================
+   UPDATE PRINCIPAL PROFILE
+====================================================== */
+export const updatePrincipalSchema = z
+  .object({
+    name: z
+      .string()
+      .min(3, 'Name must be at least 3 characters')
+      .optional(),
+
+    password: z
+      .string()
+      .min(6, 'Password must be at least 6 characters')
+      .optional(),
+
+    phone: z
+      .string()
+      .min(10, 'Phone number must be at least 10 digits')
+      .max(15, 'Phone number must be at most 15 digits')
+      .optional(),
+
+    /* ===== NEW PRINCIPAL FIELDS ===== */
+
+    gender: z
+      .enum(['Male', 'Female', 'Other'])
+      .optional(),
+
+    yearsOfExperience: z
+      .number()
+      .min(0, 'Experience cannot be negative')
+      .max(60, 'Experience cannot exceed 60 years')
+      .optional()
+  })
 
 
 /* 
@@ -226,6 +382,41 @@ export const renewSubscriptionSchema = z.object({
   })
 });
 
+
+/* ======================================================
+   VERIFY EMAIL OTP SCHEMA
+====================================================== */
+export const verifyOtpSchema = z.object({
+  email: z
+    .string()
+    .email({ message: 'Invalid email address' })
+    .regex(/@gmail\.com$/, {
+      message: 'Only Gmail addresses are allowed'
+    }),
+
+  otp: z
+    .string()
+    .length(6, { message: 'OTP must be exactly 6 digits' })
+    .regex(/^\d{6}$/, {
+      message: 'OTP must contain only numbers'
+    })
+});
+
+/* ===============================
+   RESEND OTP
+=============================== */
+export const resendOtpSchema = z.object({
+  email: z
+    .string().
+    email('Invalid email address')
+});
+
+export const deleteSessionSchema = z.object({
+  params: z.object({
+    id: z.string().min(1)
+  })
+});
+
 /* ======================================================
   CONTACT (PUBLIC)
 ====================================================== */
@@ -237,3 +428,5 @@ export const contactMessageSchema = z.object({
   subject: z.string().min(2).max(120).optional(),
   message: z.string().min(10).max(2000)
 });
+
+

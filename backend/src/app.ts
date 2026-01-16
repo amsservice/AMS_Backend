@@ -14,6 +14,7 @@ import subscriptionRoutes from "./routes/subscription.routes";
 import paymentRoutes from "./routes/payment.routes"; 
 import holidayRoutes from './routes/holiday.routes';
 import contactRoutes from './routes/contact.routes';
+import adminDbRoutes from './routes/adminDb.routes';
 dotenv.config();
 
 const app = express();
@@ -33,6 +34,9 @@ app.use(
 app.use(express.json());
 
 //  Mount routes
+app.get("/", (req, res) => {
+  res.json({status:"success",message:"This is where the magic happens ✨"});
+})
 app.use("/api/auth", authRoutes);
 app.use("/api/school",schoolRoutes);
 app.use("/api/session",sessionRoutes);
@@ -43,6 +47,7 @@ app.use("/api/subscription",subscriptionRoutes);
 app.use("/api/payment",paymentRoutes);
 app.use('/api/holidays', holidayRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/admin/db', adminDbRoutes);
 
 
 
