@@ -3,6 +3,9 @@ import { Request, Response } from 'express';
 import crypto from 'crypto';
 import { PaymentIntent } from '../models/PaymentIntent';
 import { AuthService } from '../services/auth.service';
+import { School } from '../models/School';
+import { Principal } from '../models/Principal';
+import { signJwt } from '../utils/jwt';
 
 /* ===============================
    CREATE PAYMENT INTENT
@@ -145,8 +148,46 @@ await AuthService.activateSubscription({
   schoolEmail: normalizedEmail
 });
 
+  //   return res.status(200).json({
+  //     success: true,
+  //     message: 'Payment verified & subscription activated'
+  //   });
+
+  // } catch (error) {
+  //   console.error('Payment verification error:', error);
+  //   return res.status(500).json({
+  //     message: 'Payment verification failed'
+  //   });
+  // }
+
+   /* ===============================
+       AUTO LOGIN PRINCIPAL
+    ================================ */
+    const school = await School.findOne({ email: normalizedEmail });
+
+    if (!school || !school.principalId) {
+      return res.status(500).json({
+        message: 'Principal not found for school'
+      });
+    }
+
+    const principal = await Principal.findById(school.principalId);
+
+    if (!principal) {
+      return res.status(500).json({
+        message: 'Principal account missing'
+      });
+    }
+
+    const accessToken = signJwt({
+      userId: principal._id.toString(),
+      role: 'principal',
+      schoolId: school._id.toString()
+    });
+
     return res.status(200).json({
       success: true,
+      accessToken,
       message: 'Payment verified & subscription activated'
     });
 
