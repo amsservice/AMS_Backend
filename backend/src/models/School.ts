@@ -6,7 +6,7 @@ export interface SchoolDoc extends Document {
   name: string;
   email: string;
   phone?: string;
-  schoolType: 'Government' | 'Private' | 'Semi-Private';
+  schoolType: 'Government' | 'Private' | 'Semi-governemnt';
   board: string;
   address?: string;
   pincode?: string;
