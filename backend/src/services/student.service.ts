@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
 
 interface BulkStudentInput {
   name: string;
-  email: string;
+  email?: string;
   password: string;
   admissionNo: string;
   fatherName: string;
@@ -30,7 +30,7 @@ export class StudentService {
     teacherId: string,
     data: {
       name: string;
-      email: string;
+      email?: string;
       password: string;
       admissionNo: string;
       fatherName: string;
@@ -51,7 +51,10 @@ export class StudentService {
     //  Create student
     const student = await Student.create({
       name: data.name,
-      email: data.email,
+      email:
+        data.email && data.email.trim() !== ''
+          ? data.email.trim().toLowerCase()
+          : undefined,
       password: data.password, // hashed by schema
       admissionNo: data.admissionNo,
       fatherName: data.fatherName,
@@ -327,7 +330,6 @@ export class StudentService {
     students.forEach((s, index) => {
       if (
         !s.name ||
-        !s.email ||
         !s.password ||
         !s.admissionNo ||
         !s.fatherName ||
@@ -363,7 +365,10 @@ export class StudentService {
     ------------------------------ */
     const preparedDocs = students.map(s => ({
       name: s.name.trim(),
-      email: s.email.trim().toLowerCase(),
+      email:
+        s.email && s.email.trim() !== ''
+          ? s.email.trim().toLowerCase()
+          : undefined,
       password: s.password, // let schema hash it
       admissionNo: s.admissionNo.trim(),
       fatherName: s.fatherName.trim(),
@@ -461,7 +466,6 @@ export class StudentService {
     students.forEach((s, index) => {
       if (
         !s.name ||
-        !s.email ||
         !s.password ||
         !s.admissionNo ||
         !s.fatherName ||
@@ -538,7 +542,10 @@ export class StudentService {
 
       preparedDocs.push({
         name: s.name.trim(),
-        email: s.email.trim().toLowerCase(),
+        email:
+          s.email && s.email.trim() !== ''
+            ? s.email.trim().toLowerCase()
+            : undefined,
         password: s.password,
         admissionNo: s.admissionNo.trim(),
         fatherName: s.fatherName.trim(),
@@ -619,7 +626,10 @@ export class StudentService {
 
     const student = await Student.create({
       name: data.name.trim(),
-      email: data.email?.trim().toLowerCase(),
+      email:
+        data.email && data.email.trim() !== ''
+          ? data.email.trim().toLowerCase()
+          : undefined,
       password: data.password, // 🔥 schema will hash
       admissionNo: data.admissionNo.trim(),
       fatherName: data.fatherName.trim(),

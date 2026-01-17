@@ -6,18 +6,54 @@ import { Session } from '../models/Session';
 import fs from 'fs';
 import csv from 'csv-parser';
 
+const buildDuplicateKeyMessage = (err: any) => {
+  const keyPattern = err?.keyPattern ?? {};
+  const keyValue = err?.keyValue ?? {};
+  const keys = Object.keys(keyPattern);
+
+  // Prefer the actual "business" unique fields when compound indexes exist
+  if (keys.includes('admissionNo')) {
+    const value = keyValue.admissionNo;
+    return `Admission number already exists${value !== undefined ? `: ${value}` : ''}`;
+  }
+
+  if (keys.includes('email')) {
+    const value = keyValue.email;
+    if (value === null || value === undefined || value === '') {
+      return 'Email already exists';
+    }
+    return `Email already exists: ${value}`;
+  }
+
+  if (keys.length) {
+    const details = keys
+      .map(k => (keyValue[k] !== undefined ? `${k}: ${keyValue[k]}` : k))
+      .join(', ');
+    return `Duplicate value not allowed for ${details}`;
+  }
+
+  return 'Duplicate value not allowed';
+};
+
 /* 
    TEACHER: ADD STUDENT
  */
 export const createStudent = async (req: AuthRequest, res: Response) => {
   const teacherId = req.user!.userId;
 
-  const result = await StudentService.createStudentByTeacher(
-    teacherId,
-    req.body
-  );
+  try {
+    const result = await StudentService.createStudentByTeacher(
+      teacherId,
+      req.body
+    );
 
-  res.status(201).json(result);
+    return res.status(201).json(result);
+  } catch (err: any) {
+    if (err?.code === 11000) {
+      return res.status(400).json({ message: buildDuplicateKeyMessage(err) });
+    }
+    return res.status(400).json({ message: err.message });
+  }
 };
 
 
@@ -109,6 +145,9 @@ export const bulkUploadStudentsSchoolWide = async (
       invalidRows
     });
   } catch (err: any) {
+    if (err?.code === 11000) {
+      return res.status(400).json({ message: buildDuplicateKeyMessage(err) });
+    }
     return res.status(400).json({ message: err.message });
   } finally {
     fs.unlink(file.path, () => {});
@@ -324,6 +363,9 @@ export const bulkUploadStudents = async (
       invalidRows
     });
   } catch (err: any) {
+    if (err?.code === 11000) {
+      return res.status(400).json({ message: buildDuplicateKeyMessage(err) });
+    }
     return res.status(400).json({ message: err.message });
   } finally {
     fs.unlink(file.path, () => {});
@@ -344,6 +386,9 @@ export const createStudentByPrincipal = async (
 
     res.status(201).json(result);
   } catch (err: any) {
+    if (err?.code === 11000) {
+      return res.status(400).json({ message: buildDuplicateKeyMessage(err) });
+    }
     res.status(400).json({ message: err.message });
   }
 };
