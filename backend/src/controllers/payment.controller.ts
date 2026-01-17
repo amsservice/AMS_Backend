@@ -85,6 +85,8 @@ export const verifyPayment = async (
         message: 'Missing payment verification fields'
       });
     }
+    /* ✅ DECLARE FIRST (FIX) */
+    // const normalizedEmail = schoolEmail.toLowerCase().trim();
 
     /* ===============================
        VERIFY RAZORPAY SIGNATURE
@@ -129,6 +131,30 @@ export const verifyPayment = async (
       });
     }
 
+    // if (intent.status === 'used') {
+    //   const school = await School.findOne({ email: normalizedEmail });
+    //   const principal = school
+    //     ? await Principal.findById(school.principalId)
+    //     : null;
+
+    //   if (!school || !principal) {
+    //     return res.status(500).json({ message: 'Principal not found' });
+    //   }
+
+    //   const accessToken = signJwt({
+    //     userId: principal._id.toString(),
+    //     role: 'principal',
+    //     schoolId: school._id.toString()
+    //   });
+
+    //   return res.status(200).json({
+    //     success: true,
+    //     accessToken,
+    //     message: 'Already activated'
+    //   });
+    // }
+
+
     // ✅ Mark as paid (idempotent)
     if (intent.status !== 'paid') {
       intent.paymentId = razorpay_payment_id;
@@ -140,29 +166,29 @@ export const verifyPayment = async (
        ACTIVATE SUBSCRIPTION (CORE FLOW)
     ================================ */
 
-const normalizedEmail = schoolEmail.toLowerCase().trim();
+    const normalizedEmail = schoolEmail.toLowerCase().trim();
 
-await AuthService.activateSubscription({
-  orderId: razorpay_order_id,
-  paymentId: razorpay_payment_id,
-  schoolEmail: normalizedEmail
-});
+    await AuthService.activateSubscription({
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      schoolEmail: normalizedEmail
+    });
 
-  //   return res.status(200).json({
-  //     success: true,
-  //     message: 'Payment verified & subscription activated'
-  //   });
+    //   return res.status(200).json({
+    //     success: true,
+    //     message: 'Payment verified & subscription activated'
+    //   });
 
-  // } catch (error) {
-  //   console.error('Payment verification error:', error);
-  //   return res.status(500).json({
-  //     message: 'Payment verification failed'
-  //   });
-  // }
+    // } catch (error) {
+    //   console.error('Payment verification error:', error);
+    //   return res.status(500).json({
+    //     message: 'Payment verification failed'
+    //   });
+    // }
 
-   /* ===============================
-       AUTO LOGIN PRINCIPAL
-    ================================ */
+    /* ===============================
+        AUTO LOGIN PRINCIPAL
+     ================================ */
     const school = await School.findOne({ email: normalizedEmail });
 
     if (!school || !school.principalId) {
