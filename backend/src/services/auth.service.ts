@@ -1,4 +1,3 @@
-
 import mongoose from 'mongoose';
 import dns from 'dns/promises';
 
@@ -83,6 +82,7 @@ export class AuthService {
     } = data;
 
     const normalizedSchoolEmail = String(schoolEmail).toLowerCase().trim();
+    const normalizedPrincipalEmail = String(principalEmail).toLowerCase().trim();
 
     // 1️⃣ Gmail validation
     if (!gmailRegex.test(normalizedSchoolEmail)) {
@@ -135,6 +135,19 @@ export class AuthService {
       throw err;
     }
 
+    // 4️⃣b Duplicate principal email (already registered with another school)
+    const existingPrincipal = await Principal.findOne({ email: normalizedPrincipalEmail })
+      .select('_id email schoolId')
+      .lean();
+
+    if (existingPrincipal) {
+      const err: any = new Error(
+        'Principal email is already registered with a different school'
+      );
+      err.statusCode = 409;
+      throw err;
+    }
+
     // 5️⃣ OTP
     const otp = generateOtp();
 
@@ -174,7 +187,7 @@ export class AuthService {
         [
           {
             name: principalName,
-            email: principalEmail,
+            email: normalizedPrincipalEmail,
             password: principalPassword,
             gender: principalGender, // optional
             yearsOfExperience: principalExperience, // optional
@@ -222,6 +235,7 @@ export class AuthService {
     } = data;
 
     const normalizedSchoolEmail = String(schoolEmail).toLowerCase().trim();
+    const normalizedPrincipalEmail = String(principalEmail).toLowerCase().trim();
 
     const school = await School.findOne({ email: normalizedSchoolEmail });
     if (!school) {
@@ -256,8 +270,23 @@ export class AuthService {
     if (school.principalId) {
       const principal = await Principal.findById(school.principalId).select('+password');
       if (principal) {
+        const existingPrincipal = await Principal.findOne({
+          email: normalizedPrincipalEmail,
+          _id: { $ne: principal._id }
+        })
+          .select('_id email schoolId')
+          .lean();
+
+        if (existingPrincipal) {
+          const err: any = new Error(
+            'Principal email is already registered with a different school'
+          );
+          err.statusCode = 409;
+          throw err;
+        }
+
         principal.name = principalName;
-        principal.email = principalEmail;
+        principal.email = normalizedPrincipalEmail;
         principal.password = principalPassword;
         principal.gender = principalGender;
         principal.yearsOfExperience = principalExperience;
@@ -635,8 +664,4 @@ export class AuthService {
   }
 
 }
-
-
-
-
 
