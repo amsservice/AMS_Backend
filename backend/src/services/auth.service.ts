@@ -39,6 +39,26 @@ const generateOtp = () =>
 
 export class AuthService {
 
+  static async getSchoolPaymentStatus(schoolEmail: string) {
+    const normalizedEmail = schoolEmail.toLowerCase().trim();
+
+    const school = await School.findOne({ email: normalizedEmail })
+      .select('email paymentId')
+      .lean();
+
+    if (!school) {
+      const err: any = new Error('School not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    return {
+      email: school.email,
+      paymentId: school.paymentId ?? null,
+      hasPayment: Boolean(school.paymentId)
+    };
+  }
+
   /* ======================================================
      REGISTER SCHOOL (GMAIL + OTP ONLY)
   ====================================================== */

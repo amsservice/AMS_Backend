@@ -185,3 +185,28 @@ export const resendSchoolOtp = async (req: Request, res: Response) => {
 
   res.status(200).json(result);
 };
+
+export const getSchoolPaymentStatus = async (req: Request, res: Response) => {
+  try {
+    const email = String(req.query.email || '').toLowerCase().trim();
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    const status = await AuthService.getSchoolPaymentStatus(email);
+
+    return res.status(200).json({
+      success: true,
+      ...status
+    });
+  } catch (error: any) {
+    return res.status(error.statusCode || 400).json({
+      success: false,
+      message: error.message || 'Failed to fetch payment status'
+    });
+  }
+};
