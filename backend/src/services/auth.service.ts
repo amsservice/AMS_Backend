@@ -82,25 +82,47 @@ export class AuthService {
       principalExperience
     } = data;
 
+    const normalizedSchoolEmail = String(schoolEmail).toLowerCase().trim();
+
     // 1️⃣ Gmail validation
-    if (!gmailRegex.test(schoolEmail)) {
+    if (!gmailRegex.test(normalizedSchoolEmail)) {
       throw new Error('Only Gmail addresses are allowed');
     }
 
     // 2️⃣ Temporary email block
-    const domain = schoolEmail.split('@')[1];
+    const domain = normalizedSchoolEmail.split('@')[1];
     if (blockedDomains.includes(domain)) {
       throw new Error('Temporary email addresses are not allowed');
     }
 
     // 3️⃣ Gmail MX check
-    if (!(await verifyGmailMx(schoolEmail))) {
+    if (!(await verifyGmailMx(normalizedSchoolEmail))) {
       throw new Error('Invalid Gmail domain');
     }
 
     // 4️⃣ Duplicate school email
-    const existingSchool = await School.findOne({ email: schoolEmail });
+    const existingSchool = await School.findOne({ email: normalizedSchoolEmail });
     if (existingSchool) {
+      if (!existingSchool.isEmailVerified) {
+        return await this.updatePendingSchoolRegistration({
+          schoolName,
+          schoolEmail: normalizedSchoolEmail,
+          phone,
+          address,
+          pincode,
+          schoolType,
+          board,
+          city,
+          district,
+          state,
+          principalName,
+          principalEmail,
+          principalPassword,
+          principalGender,
+          principalExperience
+        });
+      }
+
       const err: any = new Error('School email already registered');
       err.statusCode = 409;
       err.data = {
@@ -127,7 +149,7 @@ export class AuthService {
         [
           {
             name: schoolName,
-            email: schoolEmail,
+            email: normalizedSchoolEmail,
             phone,
             address,
             pincode,
@@ -167,7 +189,7 @@ export class AuthService {
 
       await session.commitTransaction();
 
-      await sendOtp(schoolEmail, otp);
+      await sendOtp(normalizedSchoolEmail, otp);
 
       return {
         message: 'OTP sent to Gmail. Please verify email.'
@@ -208,7 +230,7 @@ export class AuthService {
       throw err;
     }
 
-    if (school.paymentId) {
+    if (school.isEmailVerified && school.paymentId) {
       const err: any = new Error('School email already registered');
       err.statusCode = 409;
       err.data = {
