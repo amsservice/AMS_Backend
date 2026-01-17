@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-
-
 // Login (Principal / Teacher / Student)
 export const loginSchema = z.object({
   email: z.email(),
@@ -94,7 +92,7 @@ export const registerSchoolSchema = z.object({
   principalExperience: z
     .number()
     .min(0, 'Experience cannot be negative')
-    .max(60, 'Experience cannot exceed 60 years')
+    .max(42, 'Experience cannot exceed 42 years')
     .optional()
 });
 
