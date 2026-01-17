@@ -9,7 +9,8 @@ import {
   getPrincipalProfile,
   loginTeacher,
   loginStudent,
-  resendSchoolOtp
+  resendSchoolOtp,
+  getSchoolPaymentStatus
 } from '../controllers/auth.controller';
 
 import { validate } from '../middleware/validate.middleware';
@@ -49,6 +50,8 @@ router.post(
   validate(verifyOtpSchema),
   verifySchoolOtp
 );
+
+router.get('/school/payment-status', getSchoolPaymentStatus);
 
 /* ======================================================
    PRINCIPAL LOGIN
