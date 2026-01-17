@@ -1,4 +1,4 @@
-import mongoose,  { Types} from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { Teacher } from '../models/Teacher';
 import { Class } from "../models/Class";
 
@@ -204,21 +204,21 @@ export class TeacherService {
   }
 
 
-/* ======================================================
-   PRINCIPAL DASHBOARD
-   TOTAL ACTIVE TEACHERS (SCHOOL WISE)
-   NO SESSION
-====================================================== */
-static async countActiveTeachers(schoolId: Types.ObjectId) {
-  return Teacher.countDocuments({
-    schoolId,
-    'history.isActive': true
-  });
-}
-
-/* ======================================================
-     SWAP TEACHERS BETWEEN TWO CLASSES
+  /* ======================================================
+     PRINCIPAL DASHBOARD
+     TOTAL ACTIVE TEACHERS (SCHOOL WISE)
+     NO SESSION
   ====================================================== */
+  static async countActiveTeachers(schoolId: Types.ObjectId) {
+    return Teacher.countDocuments({
+      schoolId,
+      'history.isActive': true
+    });
+  }
+
+  /* ======================================================
+       SWAP TEACHERS BETWEEN TWO CLASSES
+    ====================================================== */
   static async swapTeacherClasses(
     schoolId: Types.ObjectId,
     data: {
@@ -313,7 +313,9 @@ static async countActiveTeachers(schoolId: Types.ObjectId) {
 
       return { message: 'Teachers swapped successfully' };
     } catch (error) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       session.endSession();
       throw error;
     }
@@ -324,27 +326,27 @@ static async countActiveTeachers(schoolId: Types.ObjectId) {
    TEACHER / PRINCIPAL
    GET FULL TEACHER PROFILE (ALL DB DETAILS)
 ====================================================== */
-static async getTeacherFullProfile(teacherId: string) {
-  const teacher = await Teacher.findById(teacherId)
-    .select('-password') // never expose password
-    .populate({
-      path: 'schoolId',
-      select: 'name'
-    })
-    .populate({
-      path: 'history.sessionId',
-      select: 'name'
-    })
-    .populate({
-      path: 'history.classId',
-      select: 'name section'
-    })
-    .lean();
+  static async getTeacherFullProfile(teacherId: string) {
+    const teacher = await Teacher.findById(teacherId)
+      .select('-password') // never expose password
+      .populate({
+        path: 'schoolId',
+        select: 'name'
+      })
+      .populate({
+        path: 'history.sessionId',
+        select: 'name'
+      })
+      .populate({
+        path: 'history.classId',
+        select: 'name section'
+      })
+      .lean();
 
-  if (!teacher) {
-    throw new Error('Teacher not found');
+    if (!teacher) {
+      throw new Error('Teacher not found');
+    }
+
+    return teacher;
   }
-
-  return teacher;
-}
 }

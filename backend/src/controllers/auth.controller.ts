@@ -1,5 +1,3 @@
-
-
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { AuthRequest } from '../middleware/auth.middleware';
@@ -20,13 +18,46 @@ export const registerSchool = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Registration error:', error);
 
+    if (error?.statusCode === 409) {
+      return res.status(200).json({
+        success: false,
+        statusCode: 409,
+        message: error.message || 'School email already registered',
+        data: error.data
+      });
+    }
+
     res.status(error.statusCode || 400).json({
       success: false,
       message: error.message || 'Registration failed',
+      data: error.data
     });
   }
 };
 
+export const updatePendingSchoolRegistration = async (req: Request, res: Response) => {
+  try {
+    const result = await AuthService.updatePendingSchoolRegistration(req.body);
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error('Update pending registration error:', error);
+
+    if (error?.statusCode === 409) {
+      return res.status(200).json({
+        success: false,
+        statusCode: 409,
+        message: error.message || 'School email already registered',
+        data: error.data
+      });
+    }
+
+    res.status(error.statusCode || 400).json({
+      success: false,
+      message: error.message || 'Update failed',
+      data: error.data
+    });
+  }
+};
 
 /* ======================================================
    VERIFY SCHOOL EMAIL OTP

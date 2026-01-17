@@ -1,7 +1,3 @@
-
-
-
-
 import 'dotenv/config';
 import { envSchema } from './env.schema';
 
