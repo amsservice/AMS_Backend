@@ -1,7 +1,10 @@
 import { Response } from 'express';
+import { Types } from 'mongoose';
 import { StudentService } from '../services/student.service';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { Session } from '../models/Session';
+import fs from 'fs';
+import csv from 'csv-parser';
 
 /* 
    TEACHER: ADD STUDENT
@@ -115,4 +118,122 @@ export const getMyStudents = async (
   const students = await StudentService.getMyStudents(teacherId);
 
   res.json(students);
+};
+
+//bulk upload students
+// bulk upload students (teacher + principal)
+export const bulkUploadStudents = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const file = req.file;
+  if (!file) {
+    return res.status(400).json({ message: 'CSV file required' });
+  }
+
+  const role = req.user!.role;
+
+  if (role !== 'teacher' && role !== 'principal') {
+    return res.status(403).json({
+      message: 'Only teacher or principal can upload students'
+    });
+  }
+
+  if (
+    role === 'principal' &&
+    (!req.body.classId || !req.body.className || !req.body.section)
+  ) {
+    return res.status(400).json({
+      message: 'classId, className and section are required for principal'
+    });
+  }
+
+  const students: any[] = [];
+  const invalidRows: { row: number; reason: string }[] = [];
+  let rowIndex = 1;
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      fs.createReadStream(file.path)
+        .pipe(csv())
+        .on('data', row => {
+          rowIndex++;
+
+          const name = row.name?.trim();
+          const admissionNo = row.admissionNo?.trim();
+          const password = row.password;
+          const rollNo = Number(row.rollNo);
+
+          if (!name || !admissionNo || !password || Number.isNaN(rollNo)) {
+            invalidRows.push({
+              row: rowIndex,
+              reason: 'Missing required fields'
+            });
+            return;
+          }
+
+          students.push({
+            name,
+            email: row.email?.trim() || undefined,
+            password,
+            admissionNo,
+            fatherName: row.fatherName?.trim() || '',
+            motherName: row.motherName?.trim() || '',
+            parentsPhone: row.parentsPhone?.trim() || '',
+            rollNo
+          });
+        })
+        .on('end', resolve)
+        .on('error', reject);
+    });
+
+    if (!students.length) {
+      return res.status(400).json({
+        message: 'No valid students found in CSV',
+        invalidRows
+      });
+    }
+
+    const result = await StudentService.bulkCreateStudents(
+      {
+        role,
+        userId: req.user!.userId,
+        schoolId: new Types.ObjectId(req.user!.schoolId),
+        classId: req.body.classId
+          ? new Types.ObjectId(req.body.classId)
+          : undefined,
+        className: req.body.className,
+        section: req.body.section
+      },
+      students
+    );
+
+    return res.status(201).json({
+      ...result,
+      invalidRowsCount: invalidRows.length,
+      invalidRows
+    });
+  } catch (err: any) {
+    return res.status(400).json({ message: err.message });
+  } finally {
+    fs.unlink(file.path, () => {});
+  }
+};
+
+
+// add student by principal
+export const createStudentByPrincipal = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const result = await StudentService.createStudentByPrincipal(
+      req.user!.schoolId!,
+      req.body
+    );
+
+    res.status(201).json(result);
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
 };
