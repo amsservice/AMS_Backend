@@ -21,6 +21,101 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
 };
 
 
+export const bulkUploadStudentsSchoolWide = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const file = req.file;
+  if (!file) {
+    return res.status(400).json({ message: 'CSV file required' });
+  }
+
+  const role = req.user!.role;
+  if (role !== 'principal') {
+    return res.status(403).json({ message: 'Only principal can upload whole-school students' });
+  }
+
+  const students: any[] = [];
+  const invalidRows: { row: number; reason: string }[] = [];
+  let rowIndex = 1;
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      fs.createReadStream(file.path)
+        .pipe(csv())
+        .on('data', row => {
+          rowIndex++;
+
+          const name = row.name?.trim();
+          const admissionNo = row.admissionNo?.trim();
+          const password = row.password;
+          const rollNo = Number(row.rollNo);
+
+          const classId = row.classId?.trim();
+          const className = row.className?.trim() || row.class?.trim();
+          const section = row.section?.trim();
+
+          if (!name || !admissionNo || !password || Number.isNaN(rollNo)) {
+            invalidRows.push({
+              row: rowIndex,
+              reason: 'Missing required fields'
+            });
+            return;
+          }
+
+          if (!classId && (!className || !section)) {
+            invalidRows.push({
+              row: rowIndex,
+              reason: 'Missing classId or (className and section)'
+            });
+            return;
+          }
+
+          students.push({
+            name,
+            email: row.email?.trim() || undefined,
+            password,
+            admissionNo,
+            fatherName: row.fatherName?.trim() || '',
+            motherName: row.motherName?.trim() || '',
+            parentsPhone: row.parentsPhone?.trim() || '',
+            rollNo,
+            classId: classId || undefined,
+            className: className || undefined,
+            section: section || undefined
+          });
+        })
+        .on('end', resolve)
+        .on('error', reject);
+    });
+
+    if (!students.length) {
+      return res.status(400).json({
+        message: 'No valid students found in CSV',
+        invalidRows
+      });
+    }
+
+    const result = await StudentService.bulkCreateStudentsSchoolWide(
+      {
+        schoolId: new Types.ObjectId(req.user!.schoolId)
+      },
+      students
+    );
+
+    return res.status(201).json({
+      ...result,
+      invalidRowsCount: invalidRows.length,
+      invalidRows
+    });
+  } catch (err: any) {
+    return res.status(400).json({ message: err.message });
+  } finally {
+    fs.unlink(file.path, () => {});
+  }
+};
+
+
 /* 
    TEACHER: UPDATE STUDENT PROFILE
 */
@@ -118,6 +213,21 @@ export const getMyStudents = async (
   const students = await StudentService.getMyStudents(teacherId);
 
   res.json(students);
+};
+
+
+export const getSchoolStudents = async (req: AuthRequest, res: Response) => {
+  const role = req.user!.role;
+  if (role !== 'principal') {
+    return res.status(403).json({ message: 'Only principal can access students list' });
+  }
+
+  try {
+    const students = await StudentService.getSchoolStudents(req.user!.schoolId!);
+    return res.json(students);
+  } catch (err: any) {
+    return res.status(400).json({ message: err.message });
+  }
 };
 
 //bulk upload students
