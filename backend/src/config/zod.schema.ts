@@ -6,19 +6,6 @@ export const loginSchema = z.object({
   password: z.string().min(6)
 });
 
-// School Registration (First-time onboarding)
-// export const registerSchoolSchema = z.object({
-//   schoolName: z.string().min(3),
-//   schoolEmail: z.email(),
-
-//   phone: z.string().min(10).max(12).optional(),
-//   address: z.string().min(10).max(15).optional(),
-//   pincode: z.string().optional(),
-
-//   principalName: z.string().min(3),
-//   principalEmail: z.email(),
-//   principalPassword: z.string().min(6),
-
 
 // });
 
@@ -30,8 +17,7 @@ export const registerSchoolSchema = z.object({
 
   schoolEmail: z
     .string()
-    .email('Invalid email format')
-    .endsWith('@gmail.com', 'Only Gmail addresses are allowed'),
+    .email('Invalid email format'),
 
   phone: z
     .string()
@@ -96,21 +82,6 @@ export const registerSchoolSchema = z.object({
     .optional()
 });
 
-// Update school profile
-// export const updateSchoolSchema = z.object({
-//   name: z.string().min(3).optional(),
-//   phone: z.string().min(10).max(15).optional(),
-//   address: z.string().optional(),
-//   pincode: z.string().optional()
-// });
-
-
-// // Update principal profile (name/password)
-// export const updatePrincipalSchema = z.object({
-//   name: z.string().min(3).optional(),
-//   password: z.string().min(6).optional(),
-//   phone: z.string().min(10).max(15).optional(),
-// });
 
 
 /* ======================================================
@@ -385,12 +356,7 @@ export const renewSubscriptionSchema = z.object({
    VERIFY EMAIL OTP SCHEMA
 ====================================================== */
 export const verifyOtpSchema = z.object({
-  email: z
-    .string()
-    .email({ message: 'Invalid email address' })
-    .regex(/@gmail\.com$/, {
-      message: 'Only Gmail addresses are allowed'
-    }),
+  email: z.string().email({ message: 'Invalid email address' }),
 
   otp: z
     .string()

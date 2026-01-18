@@ -1,5 +1,4 @@
-import {z} from 'zod';
-
+import { z } from 'zod';
 
 export const envSchema = z.object({
   PORT: z
@@ -11,9 +10,15 @@ export const envSchema = z.object({
     .string()
     .min(1, 'MONGO_URI is required'),
 
-  JWT_SECRET: z
+  // New Access Secret
+  JWT_ACCESS_SECRET: z
     .string()
-    .min(10, 'JWT_SECRET must be at least 10 characters'),
+    .min(10, 'JWT_ACCESS_SECRET must be at least 10 characters'),
+
+  // New Refresh Secret
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(10, 'JWT_REFRESH_SECRET must be at least 10 characters'),
 
   NODE_ENV: z
     .string()
@@ -24,4 +29,5 @@ export const envSchema = z.object({
     .string()
     .optional(),
 });
+
 export default envSchema;
