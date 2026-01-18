@@ -3,6 +3,8 @@ import { Types } from 'mongoose';
 import { StudentService } from '../services/student.service';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { Session } from '../models/Session';
+import { Subscription } from '../models/Subscription';
+import { Student } from '../models/Student';
 import fs from 'fs';
 import csv from 'csv-parser';
 
@@ -177,6 +179,28 @@ export const bulkUploadStudentsSchoolWide = async (
       return res.status(400).json({
         message: 'No valid students found in CSV',
         invalidRows
+      });
+    }
+
+    const subscription = await Subscription.findOne({
+      schoolId: req.user!.schoolId,
+      status: { $in: ['active', 'grace'] }
+    }).select('billableStudents');
+
+    if (!subscription) {
+      return res.status(403).json({
+        message: 'No active subscription'
+      });
+    }
+
+    const currentCount = await Student.countDocuments({
+      schoolId: req.user!.schoolId,
+      status: 'active'
+    });
+
+    if (currentCount + students.length > subscription.billableStudents) {
+      return res.status(403).json({
+        message: `Student limit reached. You can add only ${Math.max(0, subscription.billableStudents - currentCount)} more students.`
       });
     }
 
@@ -388,6 +412,28 @@ export const bulkUploadStudents = async (
       return res.status(400).json({
         message: 'No valid students found in CSV',
         invalidRows
+      });
+    }
+
+    const subscription = await Subscription.findOne({
+      schoolId: req.user!.schoolId,
+      status: { $in: ['active', 'grace'] }
+    }).select('billableStudents');
+
+    if (!subscription) {
+      return res.status(403).json({
+        message: 'No active subscription'
+      });
+    }
+
+    const currentCount = await Student.countDocuments({
+      schoolId: req.user!.schoolId,
+      status: 'active'
+    });
+
+    if (currentCount + students.length > subscription.billableStudents) {
+      return res.status(403).json({
+        message: `Student limit reached. You can add only ${Math.max(0, subscription.billableStudents - currentCount)} more students.`
       });
     }
 
