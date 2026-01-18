@@ -73,6 +73,15 @@ export const registerSchoolSchema = z.object({
     .string()
     .email('Invalid principal email'),
 
+  principalPhone: z
+    .string()
+    .regex(/^\d{10}$/, 'Principal phone number must be 10 digits'),
+
+  principalQualification: z
+    .string()
+    .min(2, 'Qualification must be at least 2 characters')
+    .max(100, 'Qualification must be at most 100 characters'),
+
   principalPassword: z
     .string()
     .min(6, 'Password must be at least 6 characters'),
@@ -98,6 +107,13 @@ export const updateSchoolSchema = z
     name: z
       .string()
       .min(3, 'School name must be at least 3 characters')
+      .optional(),
+
+    establishedYear: z
+      .number()
+      .int('Established year must be a valid year')
+      .min(1900, 'Established year must be 1900 or later')
+      .max(new Date().getFullYear(), 'Established year cannot be in the future')
       .optional(),
 
     phone: z
@@ -164,6 +180,12 @@ export const updatePrincipalSchema = z
       .string()
       .min(10, 'Phone number must be at least 10 digits')
       .max(15, 'Phone number must be at most 15 digits')
+      .optional(),
+
+    qualification: z
+      .string()
+      .min(2, 'Qualification must be at least 2 characters')
+      .max(100, 'Qualification must be at most 100 characters')
       .optional(),
 
     /* ===== NEW PRINCIPAL FIELDS ===== */
