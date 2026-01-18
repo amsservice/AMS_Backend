@@ -276,7 +276,14 @@ export const updateMyProfileSchema = z.object({
 
 export const createStudentSchema = z.object({
   name: z.string().min(3),
-  email: z.email(),
+  email: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined) return undefined;
+      if (typeof val === 'string' && val.trim() === '') return undefined;
+      return val;
+    },
+    z.string().email().optional()
+  ),
   password: z.string().min(6),
 
   admissionNo: z.string().min(1),

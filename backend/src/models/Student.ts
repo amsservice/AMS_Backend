@@ -18,7 +18,7 @@ export interface StudentSessionHistory {
  */
 export interface StudentDoc extends Document {
   name: string;
-  email: string;
+  email?: string;
   password: string;
 
   admissionNo: string;
@@ -84,7 +84,7 @@ const StudentSchema = new Schema<StudentDoc>(
 
     email: {
       type: String,
-      required: true,
+      required: false,
       lowercase: true,
       index: true
     },
@@ -146,10 +146,9 @@ StudentSchema.index(
   { unique: true }
 );
 
-// unique email per school 
+// email lookup per school
 StudentSchema.index(
-  { schoolId: 1, email: 1 },
-  { unique: true }
+  { schoolId: 1, email: 1 }
 );
 
 /* 

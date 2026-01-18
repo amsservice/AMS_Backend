@@ -2,18 +2,24 @@ import mongoose, { Types } from 'mongoose';
 import { Student } from '../models/Student';
 import { Teacher } from '../models/Teacher';
 import { Session } from '../models/Session';
+import { Class } from '../models/Class';
 import bcrypt from 'bcryptjs';
-
 
 interface BulkStudentInput {
   name: string;
-  email: string;
+  email?: string;
   password: string;
   admissionNo: string;
   fatherName: string;
   motherName: string;
   parentsPhone: string;
   rollNo: number;
+}
+
+interface BulkStudentWithClassInput extends BulkStudentInput {
+  classId?: string;
+  className?: string;
+  section?: string;
 }
 
 export class StudentService {
@@ -24,7 +30,7 @@ export class StudentService {
     teacherId: string,
     data: {
       name: string;
-      email: string;
+      email?: string;
       password: string;
       admissionNo: string;
       fatherName: string;
@@ -45,7 +51,10 @@ export class StudentService {
     //  Create student
     const student = await Student.create({
       name: data.name,
-      email: data.email,
+      email:
+        data.email && data.email.trim() !== ''
+          ? data.email.trim().toLowerCase()
+          : undefined,
       password: data.password, // hashed by schema
       admissionNo: data.admissionNo,
       fatherName: data.fatherName,
@@ -70,9 +79,6 @@ export class StudentService {
     };
   }
 
-
-
-
   /* 
      STUDENT SERVICE
   */
@@ -80,47 +86,6 @@ export class StudentService {
   /* 
      TEACHER: UPDATE STUDENT PROFILE (NO PASSWORD)
    */
-  // static async updateStudentByTeacher(
-  //   teacherId: string,
-  //   studentId: string,
-  //   data: {
-  //     name?: string;
-  //     fatherName?: string;
-  //     motherName?: string;
-  //     parentsPhone?: string;
-  //     rollNo?: number;
-  //     status?: 'active' | 'inactive' | 'left';
-  //   }
-  // ) {
-  //   // find teacher active class
-  //   const teacher = await Teacher.findById(teacherId);
-  //   if (!teacher) throw new Error('Teacher not found');
-
-  //   const activeClass = teacher.history.find(h => h.isActive);
-  //   if (!activeClass) throw new Error('Teacher has no active class');
-
-  //   // ensure student belongs to teacher's class
-  //   const student = await Student.findOne({
-  //     _id: studentId,
-  //     schoolId: teacher.schoolId,
-  //     history: {
-  //       $elemMatch: {
-  //         classId: activeClass.classId,
-  //         isActive: true
-  //       }
-  //     }
-  //   });
-
-  //   if (!student) {
-  //     throw new Error('Student not found in your class');
-  //   }
-
-  //   Object.assign(student, data);
-  //   await student.save();
-
-  //   return { message: 'Student profile updated successfully' };
-  // }
-
   static async updateStudentByTeacher(
     teacherId: string,
     studentId: string,
@@ -181,8 +146,6 @@ export class StudentService {
     return { message: 'Student profile updated successfully' };
   }
 
-
-
   /* 
      STUDENT: CHANGE OWN PASSWORD
    */
@@ -203,9 +166,6 @@ export class StudentService {
     return { message: 'Password changed successfully' };
   }
 
-
-
-
   /* 
      STUDENT: GET OWN PROFILE
    */
@@ -213,40 +173,58 @@ export class StudentService {
     return Student.findById(studentId).select('-password');
   }
 
-
-
   /* =====================================================
     PRINCIPAL: TOTAL STUDENTS CLASS WISE
  ===================================================== */
   static async getTotalStudentsClassWise(
-    schoolId: Types.ObjectId,
-    sessionId: Types.ObjectId
+    schoolId: Types.ObjectId | string,
+    sessionId: Types.ObjectId | string
   ) {
-    return Student.aggregate([
-      { $unwind: '$history' },
+    const schoolObjectId =
+      typeof schoolId === 'string' ? new Types.ObjectId(schoolId) : schoolId;
+
+    const sessionObjectId =
+      typeof sessionId === 'string' ? new Types.ObjectId(sessionId) : sessionId;
+
+    return Class.aggregate([
       {
         $match: {
-          schoolId,
-          'history.sessionId': sessionId,
-          'history.isActive': true
+          schoolId: schoolObjectId,
+          sessionId: sessionObjectId
         }
       },
       {
-        $group: {
-          _id: {
-            classId: '$history.classId',
-            className: '$history.className',
-            section: '$history.section'
-          },
-          totalStudents: { $sum: 1 }
+        $lookup: {
+          from: 'students',
+          let: { classId: '$_id' },
+          pipeline: [
+            { $match: { schoolId: schoolObjectId } },
+            { $unwind: '$history' },
+            {
+              $match: {
+                'history.sessionId': sessionObjectId,
+                'history.isActive': true,
+                $expr: { $eq: ['$history.classId', '$$classId'] }
+              }
+            },
+            { $count: 'totalStudents' }
+          ],
+          as: 'studentCounts'
+        }
+      },
+      {
+        $addFields: {
+          totalStudents: {
+            $ifNull: [{ $arrayElemAt: ['$studentCounts.totalStudents', 0] }, 0]
+          }
         }
       },
       {
         $project: {
           _id: 0,
-          classId: '$_id.classId',
-          className: '$_id.className',
-          section: '$_id.section',
+          classId: '$_id',
+          className: '$name',
+          section: 1,
           totalStudents: 1
         }
       },
@@ -278,6 +256,63 @@ export class StudentService {
       .sort({ 'history.rollNo': 1 });
   }
 
+  /* =====================================================
+     PRINCIPAL: STUDENTS OF SCHOOL (ACTIVE SESSION)
+  ===================================================== */
+  static async getSchoolStudents(schoolId: string) {
+    const schoolObjectId = new Types.ObjectId(schoolId);
+
+    const activeSession = await Session.findOne({
+      schoolId: schoolObjectId,
+      isActive: true
+    });
+
+    if (!activeSession) {
+      return [];
+    }
+
+    return Student.find({
+      schoolId: schoolObjectId,
+      history: {
+        $elemMatch: {
+          sessionId: activeSession._id,
+          isActive: true
+        }
+      }
+    })
+      .select('-password')
+      .sort({ name: 1 });
+  }
+
+  /* =====================================================
+     PRINCIPAL: STUDENTS OF A CLASS (ACTIVE SESSION)
+  ===================================================== */
+  static async getStudentsByClass(schoolId: string, classId: string) {
+    const schoolObjectId = new Types.ObjectId(schoolId);
+    const classObjectId = new Types.ObjectId(classId);
+
+    const activeSession = await Session.findOne({
+      schoolId: schoolObjectId,
+      isActive: true
+    });
+
+    if (!activeSession) {
+      return [];
+    }
+
+    return Student.find({
+      schoolId: schoolObjectId,
+      history: {
+        $elemMatch: {
+          sessionId: activeSession._id,
+          classId: classObjectId,
+          isActive: true
+        }
+      }
+    })
+      .select('-password')
+      .sort({ 'history.rollNo': 1 });
+  }
 
   /* =====================================================
     BULK CREATE STUDENTS (TEACHER / PRINCIPAL)
@@ -345,7 +380,6 @@ export class StudentService {
     students.forEach((s, index) => {
       if (
         !s.name ||
-        !s.email ||
         !s.password ||
         !s.admissionNo ||
         !s.fatherName ||
@@ -381,8 +415,11 @@ export class StudentService {
     ------------------------------ */
     const preparedDocs = students.map(s => ({
       name: s.name.trim(),
-      email: s.email.trim().toLowerCase(),
-      password: s.password, // ✅ let schema hash it
+      email:
+        s.email && s.email.trim() !== ''
+          ? s.email.trim().toLowerCase()
+          : undefined,
+      password: s.password, // let schema hash it
       admissionNo: s.admissionNo.trim(),
       fatherName: s.fatherName.trim(),
       motherName: s.motherName.trim(),
@@ -420,11 +457,194 @@ export class StudentService {
     } finally {
       mongoSession.endSession();
     }
+  }
 
+  /* =====================================================
+     PRINCIPAL: BULK CREATE STUDENTS (WHOLE SCHOOL)
+     CSV rows include classId OR (className + section)
+  ===================================================== */
+  static async bulkCreateStudentsSchoolWide(
+    params: {
+      schoolId: Types.ObjectId;
+    },
+    students: BulkStudentWithClassInput[]
+  ) {
+    if (!students.length) {
+      throw new Error('No students provided');
+    }
+
+    const activeSession = await Session.findOne({
+      schoolId: params.schoolId,
+      isActive: true
+    });
+
+    if (!activeSession) {
+      throw new Error('No active session found');
+    }
+
+    const sessionId = activeSession._id;
+
+    const classes = await Class.find({
+      schoolId: params.schoolId,
+      sessionId
+    })
+      .select('_id name section')
+      .lean();
+
+    const classById = new Map<
+      string,
+      { _id: Types.ObjectId; name: string; section: string }
+    >();
+    const classByKey = new Map<
+      string,
+      { _id: Types.ObjectId; name: string; section: string }
+    >();
+
+    classes.forEach((c: any) => {
+      const id = c._id.toString();
+      classById.set(id, { _id: c._id, name: c.name, section: c.section });
+
+      const key = `${String(c.name).trim().toLowerCase()}__${String(c.section)
+        .trim()
+        .toLowerCase()}`;
+      classByKey.set(key, { _id: c._id, name: c.name, section: c.section });
+    });
+
+    const seenAdmissionNos = new Set<string>();
+    const validationErrors: { row: number; message: string }[] = [];
+
+    students.forEach((s, index) => {
+      if (
+        !s.name ||
+        !s.password ||
+        !s.admissionNo ||
+        !s.fatherName ||
+        !s.motherName ||
+        !s.parentsPhone ||
+        s.rollNo === undefined
+      ) {
+        validationErrors.push({
+          row: index + 1,
+          message: 'Missing required fields'
+        });
+      }
+
+      const hasClassId = Boolean(s.classId && String(s.classId).trim());
+      const hasClassAndSection = Boolean(
+        s.className &&
+          String(s.className).trim() &&
+          s.section &&
+          String(s.section).trim()
+      );
+
+      if (!hasClassId && !hasClassAndSection) {
+        validationErrors.push({
+          row: index + 1,
+          message: 'classId or (className and section) are required'
+        });
+      }
+
+      if (seenAdmissionNos.has(s.admissionNo)) {
+        validationErrors.push({
+          row: index + 1,
+          message: 'Duplicate admissionNo in CSV'
+        });
+      }
+
+      seenAdmissionNos.add(s.admissionNo);
+    });
+
+    if (validationErrors.length) {
+      return {
+        success: false,
+        validationErrors
+      };
+    }
+
+    const preparedDocs: any[] = [];
+    const mappingErrors: { row: number; message: string }[] = [];
+
+    students.forEach((s, index) => {
+      let resolvedClass:
+        | { _id: Types.ObjectId; name: string; section: string }
+        | undefined;
+
+      if (s.classId) {
+        resolvedClass = classById.get(String(s.classId).trim());
+      }
+
+      if (!resolvedClass) {
+        const key = `${String(s.className || '').trim().toLowerCase()}__${String(
+          s.section || ''
+        )
+          .trim()
+          .toLowerCase()}`;
+        resolvedClass = classByKey.get(key);
+      }
+
+      if (!resolvedClass) {
+        mappingErrors.push({
+          row: index + 1,
+          message: 'Invalid class mapping (classId/className+section not found)'
+        });
+        return;
+      }
+
+      preparedDocs.push({
+        name: s.name.trim(),
+        email:
+          s.email && s.email.trim() !== ''
+            ? s.email.trim().toLowerCase()
+            : undefined,
+        password: s.password,
+        admissionNo: s.admissionNo.trim(),
+        fatherName: s.fatherName.trim(),
+        motherName: s.motherName.trim(),
+        parentsPhone: s.parentsPhone.trim(),
+        schoolId: params.schoolId,
+        history: [
+          {
+            sessionId,
+            classId: resolvedClass._id,
+            className: resolvedClass.name,
+            section: resolvedClass.section,
+            rollNo: s.rollNo,
+            isActive: true
+          }
+        ]
+      });
+    });
+
+    if (mappingErrors.length) {
+      return {
+        success: false,
+        validationErrors: mappingErrors
+      };
+    }
+
+    const mongoSession = await mongoose.startSession();
+    mongoSession.startTransaction();
+
+    try {
+      await Student.insertMany(preparedDocs, {
+        session: mongoSession
+      });
+
+      await mongoSession.commitTransaction();
+      return {
+        success: true,
+        successCount: preparedDocs.length,
+        message: 'Students uploaded successfully'
+      };
+    } catch (err) {
+      await mongoSession.abortTransaction();
+      throw err;
+    } finally {
+      mongoSession.endSession();
+    }
   }
 
   //create student by principal
-
 
   static async createStudentByPrincipal(
     schoolId: string,
@@ -456,7 +676,10 @@ export class StudentService {
 
     const student = await Student.create({
       name: data.name.trim(),
-      email: data.email?.trim().toLowerCase(),
+      email:
+        data.email && data.email.trim() !== ''
+          ? data.email.trim().toLowerCase()
+          : undefined,
       password: data.password, // 🔥 schema will hash
       admissionNo: data.admissionNo.trim(),
       fatherName: data.fatherName.trim(),
