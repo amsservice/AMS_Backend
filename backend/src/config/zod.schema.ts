@@ -19,6 +19,12 @@ export const registerSchoolSchema = z.object({
     .string()
     .email('Invalid email format'),
 
+  establishedYear: z
+    .number()
+    .int('Established year must be a valid year')
+    .min(1900, 'Established year must be 1900 or later')
+    .max(new Date().getFullYear(), 'Established year cannot be in the future'),
+
   phone: z
     .string()
     .min(10, 'Phone number must be at least 10 digits')

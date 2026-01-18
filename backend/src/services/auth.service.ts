@@ -112,6 +112,7 @@ static async refreshAccessToken(refreshToken: string) {
     const {
       schoolName,
       schoolEmail,
+      establishedYear,
       phone,
       address,
       pincode,
@@ -158,6 +159,7 @@ static async refreshAccessToken(refreshToken: string) {
         return await this.updatePendingSchoolRegistration({
           schoolName,
           schoolEmail: normalizedSchoolEmail,
+          establishedYear,
           phone,
           address,
           pincode,
@@ -216,6 +218,7 @@ static async refreshAccessToken(refreshToken: string) {
           {
             name: schoolName,
             email: normalizedSchoolEmail,
+            establishedYear,
             phone,
             address,
             pincode,
@@ -272,6 +275,7 @@ static async refreshAccessToken(refreshToken: string) {
     const {
       schoolName,
       schoolEmail,
+      establishedYear,
       phone,
       address,
       pincode,
@@ -313,6 +317,7 @@ static async refreshAccessToken(refreshToken: string) {
     }
 
     school.name = schoolName;
+    school.establishedYear = establishedYear;
     school.phone = phone;
     school.address = address;
     school.pincode = pincode;
