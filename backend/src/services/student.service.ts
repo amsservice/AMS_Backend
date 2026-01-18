@@ -177,34 +177,54 @@ export class StudentService {
     PRINCIPAL: TOTAL STUDENTS CLASS WISE
  ===================================================== */
   static async getTotalStudentsClassWise(
-    schoolId: Types.ObjectId,
-    sessionId: Types.ObjectId
+    schoolId: Types.ObjectId | string,
+    sessionId: Types.ObjectId | string
   ) {
-    return Student.aggregate([
-      { $unwind: '$history' },
+    const schoolObjectId =
+      typeof schoolId === 'string' ? new Types.ObjectId(schoolId) : schoolId;
+
+    const sessionObjectId =
+      typeof sessionId === 'string' ? new Types.ObjectId(sessionId) : sessionId;
+
+    return Class.aggregate([
       {
         $match: {
-          schoolId,
-          'history.sessionId': sessionId,
-          'history.isActive': true
+          schoolId: schoolObjectId,
+          sessionId: sessionObjectId
         }
       },
       {
-        $group: {
-          _id: {
-            classId: '$history.classId',
-            className: '$history.className',
-            section: '$history.section'
-          },
-          totalStudents: { $sum: 1 }
+        $lookup: {
+          from: 'students',
+          let: { classId: '$_id' },
+          pipeline: [
+            { $match: { schoolId: schoolObjectId } },
+            { $unwind: '$history' },
+            {
+              $match: {
+                'history.sessionId': sessionObjectId,
+                'history.isActive': true,
+                $expr: { $eq: ['$history.classId', '$$classId'] }
+              }
+            },
+            { $count: 'totalStudents' }
+          ],
+          as: 'studentCounts'
+        }
+      },
+      {
+        $addFields: {
+          totalStudents: {
+            $ifNull: [{ $arrayElemAt: ['$studentCounts.totalStudents', 0] }, 0]
+          }
         }
       },
       {
         $project: {
           _id: 0,
-          classId: '$_id.classId',
-          className: '$_id.className',
-          section: '$_id.section',
+          classId: '$_id',
+          className: '$name',
+          section: 1,
           totalStudents: 1
         }
       },
@@ -262,6 +282,36 @@ export class StudentService {
     })
       .select('-password')
       .sort({ name: 1 });
+  }
+
+  /* =====================================================
+     PRINCIPAL: STUDENTS OF A CLASS (ACTIVE SESSION)
+  ===================================================== */
+  static async getStudentsByClass(schoolId: string, classId: string) {
+    const schoolObjectId = new Types.ObjectId(schoolId);
+    const classObjectId = new Types.ObjectId(classId);
+
+    const activeSession = await Session.findOne({
+      schoolId: schoolObjectId,
+      isActive: true
+    });
+
+    if (!activeSession) {
+      return [];
+    }
+
+    return Student.find({
+      schoolId: schoolObjectId,
+      history: {
+        $elemMatch: {
+          sessionId: activeSession._id,
+          classId: classObjectId,
+          isActive: true
+        }
+      }
+    })
+      .select('-password')
+      .sort({ 'history.rollNo': 1 });
   }
 
   /* =====================================================

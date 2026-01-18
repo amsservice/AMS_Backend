@@ -1,5 +1,5 @@
 import { Router,Response } from 'express';
-import { createStudent, getMyProfile,updateStudentByTeacher,changeMyPassword,getTotalStudentsClassWise,getMyStudents,bulkUploadStudents,createStudentByPrincipal,getSchoolStudents,bulkUploadStudentsSchoolWide } from '../controllers/student.controller';
+import { createStudent, getMyProfile,updateStudentByTeacher,changeMyPassword,getTotalStudentsClassWise,getMyStudents,bulkUploadStudents,createStudentByPrincipal,getSchoolStudents,bulkUploadStudentsSchoolWide, getStudentsByClass } from '../controllers/student.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { AuthRequest } from '../middleware/auth.middleware';
 
@@ -114,6 +114,13 @@ router.get(
   authMiddleware,
   allowRoles(['principal']),
   getSchoolStudents
+);
+
+router.get(
+  '/class/:classId/students',
+  authMiddleware,
+  allowRoles(['principal']),
+  getStudentsByClass
 );
 
 //upload bulk students

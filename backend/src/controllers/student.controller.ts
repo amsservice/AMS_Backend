@@ -57,6 +57,29 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
 };
 
 
+export const getStudentsByClass = async (req: AuthRequest, res: Response) => {
+  const role = req.user!.role;
+  if (role !== 'principal') {
+    return res.status(403).json({ message: 'Only principal can access students list' });
+  }
+
+  const { classId } = req.params;
+  if (!classId) {
+    return res.status(400).json({ message: 'classId is required' });
+  }
+
+  try {
+    const students = await StudentService.getStudentsByClass(
+      req.user!.schoolId!,
+      classId
+    );
+    return res.json(students);
+  } catch (err: any) {
+    return res.status(400).json({ message: err.message });
+  }
+};
+
+
 export const bulkUploadStudentsSchoolWide = async (
   req: AuthRequest,
   res: Response
