@@ -112,6 +112,7 @@ static async refreshAccessToken(refreshToken: string) {
     const {
       schoolName,
       schoolEmail,
+      establishedYear,
       phone,
       address,
       pincode,
@@ -123,6 +124,8 @@ static async refreshAccessToken(refreshToken: string) {
       //principal
       principalName,
       principalEmail,
+      principalPhone,
+      principalQualification,
       principalPassword,
       principalGender,
       principalExperience,
@@ -158,6 +161,7 @@ static async refreshAccessToken(refreshToken: string) {
         return await this.updatePendingSchoolRegistration({
           schoolName,
           schoolEmail: normalizedSchoolEmail,
+          establishedYear,
           phone,
           address,
           pincode,
@@ -168,6 +172,8 @@ static async refreshAccessToken(refreshToken: string) {
           state,
           principalName,
           principalEmail,
+          principalPhone,
+          principalQualification,
           principalPassword,
           principalGender,
           principalExperience,
@@ -216,6 +222,7 @@ static async refreshAccessToken(refreshToken: string) {
           {
             name: schoolName,
             email: normalizedSchoolEmail,
+            establishedYear,
             phone,
             address,
             pincode,
@@ -242,6 +249,8 @@ static async refreshAccessToken(refreshToken: string) {
             name: principalName,
             email: normalizedPrincipalEmail,
             password: principalPassword,
+            phone: principalPhone,
+            qualification: principalQualification,
             gender: principalGender, // optional
             yearsOfExperience: principalExperience, // optional
             schoolId: school._id,
@@ -272,6 +281,7 @@ static async refreshAccessToken(refreshToken: string) {
     const {
       schoolName,
       schoolEmail,
+      establishedYear,
       phone,
       address,
       pincode,
@@ -282,6 +292,8 @@ static async refreshAccessToken(refreshToken: string) {
       state,
       principalName,
       principalEmail,
+      principalPhone,
+      principalQualification,
       principalPassword,
       principalGender,
       principalExperience,
@@ -313,6 +325,7 @@ static async refreshAccessToken(refreshToken: string) {
     }
 
     school.name = schoolName;
+    school.establishedYear = establishedYear;
     school.phone = phone;
     school.address = address;
     school.pincode = pincode;
@@ -345,6 +358,8 @@ static async refreshAccessToken(refreshToken: string) {
         principal.name = principalName;
         principal.email = normalizedPrincipalEmail;
         principal.password = principalPassword;
+        principal.phone = principalPhone;
+        principal.qualification = principalQualification;
         principal.gender = principalGender;
         principal.yearsOfExperience = principalExperience;
         await principal.save();
@@ -600,7 +615,14 @@ static async refreshAccessToken(refreshToken: string) {
   ====================================================== */
   static async updatePrincipal(
     principalId: string,
-    data: { name?: string; password?: string },
+    data: {
+      name?: string;
+      password?: string;
+      phone?: string;
+      qualification?: string;
+      gender?: 'Male' | 'Female' | 'Other';
+      yearsOfExperience?: number;
+    },
   ) {
     const principal = await Principal.findById(principalId).select("+password");
 
@@ -615,6 +637,22 @@ static async refreshAccessToken(refreshToken: string) {
     if (data.password) {
       // password hashing handled by schema hook
       principal.password = data.password;
+    }
+
+    if (data.phone !== undefined) {
+      principal.phone = data.phone;
+    }
+
+    if (data.qualification !== undefined) {
+      principal.qualification = data.qualification;
+    }
+
+    if (data.gender !== undefined) {
+      principal.gender = data.gender;
+    }
+
+    if (data.yearsOfExperience !== undefined) {
+      principal.yearsOfExperience = data.yearsOfExperience;
     }
 
     await principal.save();

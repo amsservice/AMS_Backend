@@ -6,6 +6,7 @@ export interface PrincipalDoc extends Document {
   email: string;
   password: string;
   phone?: string;
+  qualification?: string;
   // 🆕 NEW FIELDS
   gender?: 'Male' | 'Female' | 'Other';
   yearsOfExperience?: number;
@@ -38,6 +39,11 @@ const PrincipalSchema = new Schema<PrincipalDoc>(
     },
 
     phone: String,
+
+    qualification: {
+      type: String,
+      trim: true
+    },
 
      // 🆕 Gender (Optional)
     gender: {

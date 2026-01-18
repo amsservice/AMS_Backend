@@ -37,7 +37,7 @@ export class SchoolService {
     const school = await School.findById(schoolId)
       .populate(
         'principalId',
-        'name email phone gender yearsOfExperience'
+        'name email phone qualification gender yearsOfExperience'
       )
       .populate(
         'subscriptionId',
@@ -55,8 +55,10 @@ export class SchoolService {
 
     return {
       id: school._id.toString(),
+      schoolCode: school.schoolCode,
       name: school.name,
       email: school.email,
+      establishedYear: school.establishedYear,
       phone: school.phone,
       address: school.address,
       pincode: school.pincode,
@@ -78,6 +80,7 @@ export class SchoolService {
           name: (school.principalId as any).name,
           email: (school.principalId as any).email,
           phone: (school.principalId as any).phone,
+          qualification: (school.principalId as any).qualification,
           gender: (school.principalId as any).gender,
           yearsOfExperience: (school.principalId as any).yearsOfExperience
 
@@ -112,6 +115,7 @@ export class SchoolService {
     schoolId: Types.ObjectId,
     data: Partial<{
       name: string;
+      establishedYear: number;
       phone: string;
       address: string;
       pincode: string;
@@ -135,8 +139,10 @@ export class SchoolService {
 
     return {
       id: school._id.toString(),
+      schoolCode: school.schoolCode,
       name: school.name,
       email: school.email,
+      establishedYear: school.establishedYear,
       phone: school.phone,
       address: school.address,
       pincode: school.pincode,

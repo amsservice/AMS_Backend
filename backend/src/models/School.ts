@@ -5,6 +5,7 @@ export interface SchoolDoc extends Document {
   schoolCode: number; //school code eg 1001
   name: string;
   email: string;
+  establishedYear: number;
   phone?: string;
   schoolType: 'Government' | 'Private' | 'Semi-governemnt';
   board: string;
@@ -54,6 +55,11 @@ const SchoolSchema = new Schema<SchoolDoc>(
       unique: true,
       lowercase: true,
       index: true
+    },
+
+    establishedYear: {
+      type: Number,
+      required: true
     },
 
     schoolType: {
