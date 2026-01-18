@@ -10,7 +10,7 @@ export const enforceStudentLimit = async (
 ) => {
   const subscription = await Subscription.findOne({
     schoolId: req.user!.schoolId,
-    status: 'active'
+    status: { $in: ['active', 'grace'] }
   });
 
   if (!subscription) {

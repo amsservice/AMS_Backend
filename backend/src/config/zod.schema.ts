@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-
-
 // Login (Principal / Teacher / Student)
 export const loginSchema = z.object({
   email: z.email(),
@@ -94,7 +92,7 @@ export const registerSchoolSchema = z.object({
   principalExperience: z
     .number()
     .min(0, 'Experience cannot be negative')
-    .max(60, 'Experience cannot exceed 60 years')
+    .max(42, 'Experience cannot exceed 42 years')
     .optional()
 });
 
@@ -278,7 +276,14 @@ export const updateMyProfileSchema = z.object({
 
 export const createStudentSchema = z.object({
   name: z.string().min(3),
-  email: z.email(),
+  email: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined) return undefined;
+      if (typeof val === 'string' && val.trim() === '') return undefined;
+      return val;
+    },
+    z.string().email().optional()
+  ),
   password: z.string().min(6),
 
   admissionNo: z.string().min(1),

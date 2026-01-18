@@ -1,14 +1,16 @@
-
 import { Router } from 'express';
 import {
   registerSchool,
+  updatePendingSchoolRegistration,
   verifySchoolOtp,
   loginPrincipal,
   logout,
   updatePrincipalProfile,
   getPrincipalProfile,
   loginTeacher,
-  loginStudent
+  loginStudent,
+  resendSchoolOtp,
+  getSchoolPaymentStatus
 } from '../controllers/auth.controller';
 
 import { validate } from '../middleware/validate.middleware';
@@ -22,8 +24,6 @@ import {
 
 import { authMiddleware } from '../middleware/auth.middleware';
 import { allowRoles } from '../middleware/role.middleware';
-import { resendSchoolOtp } from '../controllers/auth.controller';
-
 
 const router = Router();
 
@@ -36,6 +36,12 @@ router.post(
   registerSchool
 );
 
+router.put(
+  '/register-school',
+  validate(registerSchoolSchema),
+  updatePendingSchoolRegistration
+);
+
 /* ======================================================
    VERIFY EMAIL OTP (PUBLIC)
 ====================================================== */
@@ -44,6 +50,8 @@ router.post(
   validate(verifyOtpSchema),
   verifySchoolOtp
 );
+
+router.get('/school/payment-status', getSchoolPaymentStatus);
 
 /* ======================================================
    PRINCIPAL LOGIN
