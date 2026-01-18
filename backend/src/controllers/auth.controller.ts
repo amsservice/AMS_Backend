@@ -1,60 +1,85 @@
-import { Request, Response } from 'express';
-import { AuthService } from '../services/auth.service';
-import { AuthRequest } from '../middleware/auth.middleware';
+import { Request, Response } from "express";
+import { AuthService } from "../services/auth.service";
+import { AuthRequest } from "../middleware/auth.middleware";
+import { setAuthCookies } from "../utils/jwt";
 
 /* ======================================================
-   SCHOOL REGISTER (GMAIL + OTP)
+   REFRESH TOKEN
 ====================================================== */
-// export const registerSchool = async (req: Request, res: Response) => {
-//   const result = await AuthService.registerSchool(req.body);
-//   res.status(201).json(result);
-// };
+export const refreshToken = async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.cookies;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token is required",
+      });
+    }
+
+    const result = await AuthService.refreshAccessToken(refreshToken);
+    setAuthCookies(res, result.accessToken, result.refreshToken);
+
+    // This returns the new accessToken (7-day lifespan)
+    res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (error: any) {
+    res.status(error.statusCode || 401).json({
+      success: false,
+      message: error.message || "Session expired. Please login again.",
+    });
+  }
+};
 
 export const registerSchool = async (req: Request, res: Response) => {
   try {
     const result = await AuthService.registerSchool(req.body);
     res.status(201).json(result);
-
   } catch (error: any) {
-    console.error('Registration error:', error);
+    console.error("Registration error:", error);
 
     if (error?.statusCode === 409) {
       return res.status(200).json({
         success: false,
         statusCode: 409,
-        message: error.message || 'School email already registered',
-        data: error.data
+        message: error.message || "School email already registered",
+        data: error.data,
       });
     }
 
     res.status(error.statusCode || 400).json({
       success: false,
-      message: error.message || 'Registration failed',
-      data: error.data
+      message: error.message || "Registration failed",
+      data: error.data,
     });
   }
 };
 
-export const updatePendingSchoolRegistration = async (req: Request, res: Response) => {
+export const updatePendingSchoolRegistration = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const result = await AuthService.updatePendingSchoolRegistration(req.body);
     res.status(200).json(result);
   } catch (error: any) {
-    console.error('Update pending registration error:', error);
+    console.error("Update pending registration error:", error);
 
     if (error?.statusCode === 409) {
       return res.status(200).json({
         success: false,
         statusCode: 409,
-        message: error.message || 'School email already registered',
-        data: error.data
+        message: error.message || "School email already registered",
+        data: error.data,
       });
     }
 
     res.status(error.statusCode || 400).json({
       success: false,
-      message: error.message || 'Update failed',
-      data: error.data
+      message: error.message || "Update failed",
+      data: error.data,
     });
   }
 };
@@ -63,28 +88,19 @@ export const updatePendingSchoolRegistration = async (req: Request, res: Respons
    VERIFY SCHOOL EMAIL OTP
 ====================================================== */
 export const verifySchoolOtp = async (req: Request, res: Response) => {
-  const { email, otp } = req.body;
+  try {
+    const { email, otp } = req.body;
+    const result = await AuthService.verifySchoolOtp(email, otp);
+    setAuthCookies(res, result.accessToken, result.refreshToken);
 
-  const result = await AuthService.verifySchoolOtp(email, otp);
-  res.status(200).json(result);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "OTP verification failed",
+    });
+  }
 };
-
-/* ======================================================
-   PRINCIPAL LOGIN (OTP + SUBSCRIPTION REQUIRED)
-====================================================== */
-// export const loginPrincipal = async (req: Request, res: Response) => {
-//   try {
-//     const { email, password } = req.body;
-
-//     const result = await AuthService.loginPrincipal(email, password);
-
-//     res.status(200).json(result);
-//   } catch (error: any) {
-//     res.status(400).json({
-//       message: error.message || "Login failed"
-//     });
-//   }
-// };
 
 /* ======================================================
    PRINCIPAL LOGIN (SCHOOL CODE + EMAIL + PASSWORD)
@@ -95,31 +111,31 @@ export const loginPrincipal = async (req: Request, res: Response) => {
 
     if (!schoolCode) {
       return res.status(400).json({
-        message: 'School code is required'
+        message: "School code is required",
       });
     }
 
     const result = await AuthService.loginPrincipal(
       email,
       password,
-      Number(schoolCode)
+      Number(schoolCode),
     );
-
+    setAuthCookies(res, result.accessToken, result.refreshToken);
     res.status(200).json(result);
   } catch (error: any) {
     res.status(400).json({
-      message: error.message || 'Login failed'
+      message: error.message || "Login failed",
     });
   }
 };
-
 
 /* ======================================================
    LOGOUT
 ====================================================== */
 export const logout = async (_req: Request, res: Response) => {
-  const result = await AuthService.logout();
-  res.status(200).json(result);
+  res.clearCookie("accessToken");
+  res.clearCookie("refreshToken");
+  res.status(200).json({ success: true, message: "Logged out successfully" });
 };
 
 /* ======================================================
@@ -127,7 +143,7 @@ export const logout = async (_req: Request, res: Response) => {
 ====================================================== */
 export const updatePrincipalProfile = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   const principalId = req.user!.userId;
   const result = await AuthService.updatePrincipal(principalId, req.body);
@@ -138,10 +154,7 @@ export const updatePrincipalProfile = async (
 /* ======================================================
    GET PRINCIPAL PROFILE
 ====================================================== */
-export const getPrincipalProfile = async (
-  req: AuthRequest,
-  res: Response
-) => {
+export const getPrincipalProfile = async (req: AuthRequest, res: Response) => {
   const principalId = req.user!.userId;
   const principal = await AuthService.getPrincipal(principalId);
 
@@ -150,8 +163,8 @@ export const getPrincipalProfile = async (
       id: principal._id.toString(),
       name: principal.name,
       email: principal.email,
-      role: 'principal'
-    }
+      role: "principal",
+    },
   });
 };
 
@@ -188,12 +201,14 @@ export const resendSchoolOtp = async (req: Request, res: Response) => {
 
 export const getSchoolPaymentStatus = async (req: Request, res: Response) => {
   try {
-    const email = String(req.query.email || '').toLowerCase().trim();
+    const email = String(req.query.email || "")
+      .toLowerCase()
+      .trim();
 
     if (!email) {
       return res.status(400).json({
         success: false,
-        message: 'Email is required'
+        message: "Email is required",
       });
     }
 
@@ -201,12 +216,12 @@ export const getSchoolPaymentStatus = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
-      ...status
+      ...status,
     });
   } catch (error: any) {
     return res.status(error.statusCode || 400).json({
       success: false,
-      message: error.message || 'Failed to fetch payment status'
+      message: error.message || "Failed to fetch payment status",
     });
   }
 };

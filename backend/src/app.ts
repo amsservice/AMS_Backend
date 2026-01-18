@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { ENV } from "./config/env";
+import cookieParser from "cookie-parser";
 
 
 //  import auth routes
@@ -28,7 +29,7 @@ const corsOptions = {
       ? [ENV.FRONTEND_URL] 
       : [],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With","Cookie"],
   credentials: true,
   exposedHeaders: ['Set-Cookie'],
   maxAge: 86400, // 24 hours
@@ -36,7 +37,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
+app.use(cookieParser());
 // Middlewares
 app.use(express.json());
 

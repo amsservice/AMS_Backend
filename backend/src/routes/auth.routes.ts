@@ -10,7 +10,8 @@ import {
   loginTeacher,
   loginStudent,
   resendSchoolOtp,
-  getSchoolPaymentStatus
+  getSchoolPaymentStatus,
+  refreshToken
 } from '../controllers/auth.controller';
 
 import { validate } from '../middleware/validate.middleware';
@@ -26,6 +27,11 @@ import { authMiddleware } from '../middleware/auth.middleware';
 import { allowRoles } from '../middleware/role.middleware';
 
 const router = Router();
+
+router.post(
+  '/refresh-token',
+  refreshToken
+);
 
 /* ======================================================
    REGISTER SCHOOL (PUBLIC)
