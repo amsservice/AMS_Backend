@@ -11,18 +11,43 @@ const buildDuplicateKeyMessage = (err: any) => {
   const keyValue = err?.keyValue ?? {};
   const keys = Object.keys(keyPattern);
 
+  const raw = String(err?.errmsg || err?.message || err || '');
+
+  // Try to extract from raw E11000 message when keyPattern/keyValue are missing
+  // Examples:
+  //  - E11000 duplicate key error collection: db.students index: admissionNo_1 dup key: { admissionNo: "ADM001" }
+  //  - E11000 duplicate key error collection: ... dup key: { email: "a@b.com" }
+  const rawDupKeyMatch = raw.match(/dup key:\s*\{\s*([^}]+)\s*\}/i);
+  let rawField: string | undefined;
+  let rawValue: string | undefined;
+  if (rawDupKeyMatch?.[1]) {
+    const inside = rawDupKeyMatch[1];
+    const pairMatch = inside.match(/([A-Za-z0-9_.-]+)\s*:\s*(.*)/);
+    if (pairMatch) {
+      rawField = pairMatch[1];
+      rawValue = pairMatch[2]
+        ?.trim()
+        .replace(/^"|"$/g, '')
+        .replace(/^'|'$/g, '');
+    }
+  }
+
   // Prefer the actual "business" unique fields when compound indexes exist
-  if (keys.includes('admissionNo')) {
-    const value = keyValue.admissionNo;
+  if (keys.includes('admissionNo') || rawField === 'admissionNo') {
+    const value = keyValue.admissionNo ?? rawValue;
     return `Admission number already exists${value !== undefined ? `: ${value}` : ''}`;
   }
 
-  if (keys.includes('email')) {
-    const value = keyValue.email;
+  if (keys.includes('email') || rawField === 'email') {
+    const value = keyValue.email ?? rawValue;
     if (value === null || value === undefined || value === '') {
       return 'Email already exists';
     }
     return `Email already exists: ${value}`;
+  }
+
+  if (rawField) {
+    return `Duplicate value not allowed for ${rawField}${rawValue !== undefined ? `: ${rawValue}` : ''}`;
   }
 
   if (keys.length) {
