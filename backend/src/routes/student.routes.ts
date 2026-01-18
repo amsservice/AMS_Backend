@@ -2,6 +2,7 @@ import { Router,Response } from 'express';
 import { createStudent, getMyProfile,updateStudentByTeacher,changeMyPassword,getTotalStudentsClassWise,getMyStudents,bulkUploadStudents,createStudentByPrincipal,getSchoolStudents,bulkUploadStudentsSchoolWide, getStudentsByClass } from '../controllers/student.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { enforceStudentLimit } from '../middleware/planLimit.middleware';
 
 import { allowRoles } from '../middleware/role.middleware';
 import { validate } from '../middleware/validate.middleware';
@@ -22,6 +23,7 @@ router.post(
   '/',
   authMiddleware,
   allowRoles(['teacher', 'principal']),
+  enforceStudentLimit,
   validate(createStudentSchema),
   createStudentHandler
 );
@@ -128,6 +130,7 @@ router.post(
   '/bulk-upload',
   authMiddleware,
   allowRoles(['teacher', 'principal']),
+  enforceStudentLimit,
   uploadCSV.single('csvFile'),
   bulkUploadStudents
 );
@@ -136,6 +139,7 @@ router.post(
   '/bulk-upload-school',
   authMiddleware,
   allowRoles(['principal']),
+  enforceStudentLimit,
   uploadCSV.single('csvFile'),
   bulkUploadStudentsSchoolWide
 );
