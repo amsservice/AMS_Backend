@@ -5,7 +5,7 @@ import { PaymentIntent } from '../models/PaymentIntent';
 import { AuthService } from '../services/auth.service';
 import { School } from '../models/School';
 import { Principal } from '../models/Principal';
-import { signJwt } from '../utils/jwt';
+import { signAccessToken } from '../utils/jwt';
 
 /* ===============================
    CREATE PAYMENT INTENT
@@ -131,30 +131,6 @@ export const verifyPayment = async (
       });
     }
 
-    // if (intent.status === 'used') {
-    //   const school = await School.findOne({ email: normalizedEmail });
-    //   const principal = school
-    //     ? await Principal.findById(school.principalId)
-    //     : null;
-
-    //   if (!school || !principal) {
-    //     return res.status(500).json({ message: 'Principal not found' });
-    //   }
-
-    //   const accessToken = signJwt({
-    //     userId: principal._id.toString(),
-    //     role: 'principal',
-    //     schoolId: school._id.toString()
-    //   });
-
-    //   return res.status(200).json({
-    //     success: true,
-    //     accessToken,
-    //     message: 'Already activated'
-    //   });
-    // }
-
-
     // ✅ Mark as paid (idempotent)
     if (intent.status !== 'paid') {
       intent.paymentId = razorpay_payment_id;
@@ -205,7 +181,7 @@ export const verifyPayment = async (
       });
     }
 
-    const accessToken = signJwt({
+    const accessToken = signAccessToken({
       userId: principal._id.toString(),
       role: 'principal',
       schoolId: school._id.toString()
