@@ -271,6 +271,7 @@ export const downloadInvoicePdf = async (
 
     // Status badge
     const statusColor = inv.status === 'active' ? '#10B981' : '#F59E0B';
+    const statusLabel = inv.status === 'queued' ? 'UPCOMING' : String(inv.status).toUpperCase();
     doc
       .rect(400, 75, 145, 22)
       .fill(statusColor);
@@ -279,7 +280,7 @@ export const downloadInvoicePdf = async (
       .fontSize(10)
       .fillColor('#FFFFFF')
       .font('Helvetica-Bold')
-      .text(String(inv.status).toUpperCase(), 400, 80, {
+      .text(statusLabel, 400, 80, {
         width: 145,
         align: 'center'
       });

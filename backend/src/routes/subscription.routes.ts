@@ -48,6 +48,23 @@ router.post(
 router.post('/renew',validate(renewSubscriptionSchema), renewSubscription);
 
 /* ===============================
+   UPGRADE FLOW (PRINCIPAL ONLY)
+================================ */
+router.post(
+  '/upgrade/price-preview',
+  authMiddleware,
+  validate(pricePreviewSchema),
+  previewPrice
+);
+
+router.post(
+  '/upgrade/create-payment',
+  authMiddleware,
+  validate(createPaymentSchema),
+  createPayment
+);
+
+/* ===============================
    BILLABLE STUDENTS (PRINCIPAL)
 ================================ */
 router.get(
