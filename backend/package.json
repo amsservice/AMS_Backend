@@ -23,6 +23,7 @@
     "mongoose": "^9.0.1",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.12",
+    "pdfkit": "^0.15.2",
     "razorpay": "^2.9.6",
     "zod": "^4.1.13"
   },
@@ -35,6 +36,7 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^25.0.1",
     "@types/nodemailer": "^7.0.5",
+    "@types/pdfkit": "^0.13.9",
     "@typescript-eslint/eslint-plugin": "^8.49.0",
     "@typescript-eslint/parser": "^8.49.0",
     "eslint": "^9.39.1",

@@ -8,7 +8,9 @@ import {
   previewPrice,
   createPayment,
    renewSubscription ,
-    getBillableStudents
+    getBillableStudents,
+    getInvoiceHistory,
+    downloadInvoicePdf
 } from '../controllers/subscription.controller';
 
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -52,6 +54,18 @@ router.get(
   '/billable-students',
   authMiddleware,
   getBillableStudents
+);
+
+router.get(
+  '/invoices',
+  authMiddleware,
+  getInvoiceHistory
+);
+
+router.get(
+  '/invoices/:invoiceId/pdf',
+  authMiddleware,
+  downloadInvoicePdf
 );
 
 export default router;
