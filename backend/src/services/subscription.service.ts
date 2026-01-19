@@ -20,6 +20,54 @@ const addDays = (date: Date, days: number) => {
 };
 
 export class SubscriptionService {
+  static async transitionForSchool(schoolId: Types.ObjectId) {
+    const now = new Date();
+
+    const activeOrGrace = await Subscription.findOne({
+      schoolId,
+      status: { $in: ['active', 'grace'] }
+    }).sort({ startDate: -1 });
+
+    if (activeOrGrace) {
+      if (activeOrGrace.status === 'active') {
+        if (activeOrGrace.endDate.getTime() <= now.getTime()) {
+          if (activeOrGrace.graceEndDate.getTime() > now.getTime()) {
+            activeOrGrace.status = 'grace';
+            await activeOrGrace.save();
+          } else {
+            activeOrGrace.status = 'expired';
+            await activeOrGrace.save();
+          }
+        }
+      }
+
+      if (activeOrGrace.status === 'grace') {
+        if (activeOrGrace.graceEndDate.getTime() <= now.getTime()) {
+          activeOrGrace.status = 'expired';
+          await activeOrGrace.save();
+        }
+      }
+    }
+
+    const hasActiveOrGrace = await Subscription.exists({
+      schoolId,
+      status: { $in: ['active', 'grace'] }
+    });
+
+    if (!hasActiveOrGrace) {
+      const nextQueued = await Subscription.findOne({
+        schoolId,
+        status: 'queued',
+        startDate: { $lte: now }
+      }).sort({ startDate: 1 });
+
+      if (nextQueued) {
+        nextQueued.status = 'active';
+        await nextQueued.save();
+      }
+    }
+  }
+
   /* ===============================
      BASE PRICE CALCULATION
   =============================== */
@@ -121,6 +169,10 @@ export class SubscriptionService {
       enteredStudents: number;
       futureStudents?: number;
       couponCode?: CouponCode;
+      startDate?: Date;
+      carryOverMs?: number;
+      status?: 'active' | 'grace' | 'queued' | 'expired';
+      previousSubscriptionId?: Types.ObjectId;
     },
     session: mongoose.ClientSession
   ) {
@@ -142,8 +194,10 @@ export class SubscriptionService {
 
     const price = this.calculatePriceWithCoupon(data);
 
-    const startDate = new Date();
-    const endDate = addMonths(startDate, price.totalMonths);
+    const startDate = data.startDate ?? new Date();
+    const endDateBase = addMonths(startDate, price.totalMonths);
+    const carryOverMs = typeof data.carryOverMs === 'number' ? data.carryOverMs : 0;
+    const endDate = carryOverMs > 0 ? new Date(endDateBase.getTime() + carryOverMs) : endDateBase;
     const gracePeriodDays = 7;
     const graceEndDate = addDays(endDate, gracePeriodDays);
 
@@ -168,7 +222,9 @@ export class SubscriptionService {
           endDate,
           gracePeriodDays,
           graceEndDate,
-          status: 'active'
+
+          status: data.status ?? 'active',
+          previousSubscriptionId: data.previousSubscriptionId
         }
       ],
       { session }
@@ -192,23 +248,51 @@ export class SubscriptionService {
     },
     session: mongoose.ClientSession
   ) {
-    const current = await Subscription.findOne(
+    const now = new Date();
+
+    const lastNonExpired = await Subscription.findOne(
       {
         schoolId: data.schoolId,
-        status: { $in: ['active', 'grace'] }
+        status: { $in: ['active', 'grace', 'queued'] }
       },
       null,
       { session }
-    );
+    ).sort({ endDate: -1 });
 
-    if (!current) {
-      throw new Error('No active subscription found');
+    if (lastNonExpired) {
+      return this.createSubscription(
+        {
+          ...data,
+          startDate: lastNonExpired.endDate,
+          carryOverMs: 0,
+          status: 'queued',
+          previousSubscriptionId: lastNonExpired._id
+        },
+        session
+      );
     }
 
-    current.status = 'expired';
-    await current.save({ session });
+    const last = await Subscription.findOne(
+      { schoolId: data.schoolId },
+      null,
+      { session }
+    ).sort({ createdAt: -1 });
 
-    return this.createSubscription(data, session);
+    if (!last) {
+      throw new Error('No subscription history found');
+    }
+
+    // No active/grace/queued. Start immediately.
+    return this.createSubscription(
+      {
+        ...data,
+        startDate: now,
+        carryOverMs: 0,
+        status: 'active',
+        previousSubscriptionId: last._id
+      },
+      session
+    );
   }
 
   /* ===============================

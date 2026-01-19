@@ -26,7 +26,7 @@ export interface SubscriptionDoc extends Document {
   gracePeriodDays: number;
   graceEndDate: Date;
 
-  status: 'active' | 'grace' | 'expired';
+  status: 'active' | 'grace' | 'queued' | 'expired';
 
   previousSubscriptionId?: Types.ObjectId;
 
@@ -83,7 +83,7 @@ const SubscriptionSchema = new Schema<SubscriptionDoc>(
 
     status: {
       type: String,
-      enum: ['active', 'grace', 'expired'],
+      enum: ['active', 'grace', 'queued', 'expired'],
       default: 'active'
     },
 

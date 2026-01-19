@@ -2,12 +2,15 @@ import { Response, NextFunction } from 'express';
 import { Subscription } from '../models/Subscription';
 import { Student } from '../models/Student';
 import { AuthRequest } from './auth.middleware';
+import { SubscriptionService } from '../services/subscription.service';
 
 export const enforceStudentLimit = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) => {
+  await SubscriptionService.transitionForSchool(req.user!.schoolId as any);
+
   const subscription = await Subscription.findOne({
     schoolId: req.user!.schoolId,
     status: { $in: ['active', 'grace'] }
