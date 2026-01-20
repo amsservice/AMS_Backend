@@ -10,7 +10,9 @@ import {
   changeMyPassword,
   getActiveTeacherCount,
   deactivateTeacher,
-  swapTeacherClasses
+  swapTeacherClasses,
+  getTeacherFullProfileByRole,
+  updateTeacherProfileByRole
 } from '../controllers/teacher.controller';
 
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -107,6 +109,32 @@ router.put(
   swapTeacherClasses
 );
 
+
+/* ======================================================
+   FULL TEACHER PROFILE
+====================================================== */
+
+// Teacher → own profile
+router.get(
+  '/me/full',
+  allowRoles(['teacher']),
+  getTeacherFullProfileByRole
+);
+
+// Principal → any teacher profile
+router.get(
+  '/:id/full',
+  allowRoles(['principal']),
+  getTeacherFullProfileByRole
+);
+
+// update teacher profile (profile fields only)
+router.put(
+  '/:id/profile',
+  allowRoles(['principal']),
+  validate(updateMyProfileSchema),
+  updateTeacherProfileByRole
+);
 
 
 export default router;

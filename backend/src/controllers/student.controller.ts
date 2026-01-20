@@ -486,3 +486,57 @@ export const createStudentByPrincipal = async (
     res.status(400).json({ message: err.message });
   }
 };
+
+
+/* =====================================================
+   GET FULL STUDENT DETAILS
+   principal | teacher | student
+===================================================== */
+export const getStudentById = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const { id } = req.params;
+  const { role, userId, schoolId } = req.user!;
+
+  if (!Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid student id' });
+  }
+
+  try {
+    let student;
+
+    if (role === 'principal') {
+      student = await StudentService.getStudentForPrincipal(
+        schoolId!,
+        id
+      );
+    }
+
+    if (role === 'teacher') {
+      student = await StudentService.getStudentForTeacher(
+        userId,
+        id
+      );
+    }
+
+    if (role === 'student') {
+      if (userId !== id) {
+        return res.status(403).json({
+          message: 'Students can only access their own profile'
+        });
+      }
+      student = await StudentService.getStudentForStudent(id);
+    }
+
+    if (!student) {
+      return res.status(404).json({
+        message: 'Student not found or access denied'
+      });
+    }
+
+    return res.json(student);
+  } catch (err: any) {
+    return res.status(400).json({ message: err.message });
+  }
+};

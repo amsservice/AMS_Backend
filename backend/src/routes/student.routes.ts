@@ -1,5 +1,5 @@
 import { Router,Response } from 'express';
-import { createStudent, getMyProfile,updateStudentByTeacher,changeMyPassword,getTotalStudentsClassWise,getMyStudents,bulkUploadStudents,createStudentByPrincipal,getSchoolStudents,bulkUploadStudentsSchoolWide, getStudentsByClass } from '../controllers/student.controller';
+import { createStudent, getMyProfile,updateStudentByTeacher,changeMyPassword,getTotalStudentsClassWise,getMyStudents,bulkUploadStudents,createStudentByPrincipal,getSchoolStudents,bulkUploadStudentsSchoolWide, getStudentsByClass,getStudentById } from '../controllers/student.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { enforceStudentLimit } from '../middleware/planLimit.middleware';
@@ -88,6 +88,17 @@ router.put(
   allowRoles(['student']),
   validate(changePasswordSchema),
   changeMyPassword
+);
+
+/* =====================================================
+   GET FULL STUDENT DETAILS
+   principal | teacher | student (self only)
+===================================================== */
+router.get(
+  '/:id',
+  authMiddleware,
+  allowRoles(['principal', 'teacher', 'student']),
+  getStudentById
 );
 
 

@@ -1,6 +1,9 @@
 import mongoose, { Types } from 'mongoose';
 import { Teacher } from '../models/Teacher';
 import { Class } from "../models/Class";
+import type { UserRole } from '../utils/jwt';
+
+
 
 export class TeacherService {
   /* 
@@ -349,4 +352,56 @@ export class TeacherService {
 
     return teacher;
   }
+
+  /* ======================================================
+   TEACHER / PRINCIPAL
+   UPDATE TEACHER PROFILE
+====================================================== */
+static async updateTeacherProfile(
+  params: {
+    schoolId: Types.ObjectId;
+    requesterRole: UserRole;
+    requesterId: string;
+    teacherId?: string;
+  },
+  data: {
+    name?: string;
+    phone?: string;
+    email?: string;
+  }
+) {
+  let teacherIdToUpdate: string;
+
+  if (params.requesterRole === 'teacher') {
+    teacherIdToUpdate = params.requesterId;
+  } else if (params.requesterRole === 'principal') {
+    if (!params.teacherId) {
+      throw new Error('Teacher ID is required');
+    }
+    teacherIdToUpdate = params.teacherId;
+  } else {
+    // admin / coordinator / student
+    throw new Error('You are not allowed to update teacher profile');
+  }
+
+  const teacher = await Teacher.findOne({
+    _id: teacherIdToUpdate,
+    schoolId: params.schoolId
+  });
+
+  if (!teacher) {
+    throw new Error('Teacher not found');
+  }
+
+  if (data.name !== undefined) teacher.name = data.name;
+  if (data.phone !== undefined) teacher.phone = data.phone;
+  if (data.email !== undefined) teacher.email = data.email;
+
+  await teacher.save();
+
+  return teacher.toObject({ versionKey: false });
+}
+
+
+
 }

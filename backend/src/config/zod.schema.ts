@@ -288,7 +288,7 @@ export const createStudentSchema = z.object({
   admissionNo: z.string().min(1),
   fatherName: z.string().min(3),
   motherName: z.string().min(3),
-  parentsPhone: z.string().min(10),
+  parentsPhone: z.string().min(10).max(13),
 
   rollNo: z.number().int().positive()
 });
