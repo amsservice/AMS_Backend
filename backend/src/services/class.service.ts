@@ -73,7 +73,7 @@ export class ClassService {
     data: UpdateClassInput
    
   ) {
-    return Class.findOneAndUpdate(
+    const updatedClass = await Class.findOneAndUpdate(
       {
         _id: classId,
         schoolId,
@@ -88,6 +88,30 @@ export class ClassService {
         runValidators: true,
       }
     );
+
+    if (updatedClass && (data.name !== undefined || data.section !== undefined)) {
+      const setUpdate: Record<string, any> = {};
+      if (data.name !== undefined) {
+        setUpdate['history.$[h].className'] = updatedClass.name;
+      }
+      if (data.section !== undefined) {
+        setUpdate['history.$[h].section'] = updatedClass.section;
+      }
+
+      await Teacher.updateMany(
+        { schoolId, history: { $elemMatch: { sessionId, classId } } },
+        { $set: setUpdate },
+        { arrayFilters: [{ 'h.sessionId': sessionId, 'h.classId': classId }] }
+      );
+
+      await Student.updateMany(
+        { schoolId, history: { $elemMatch: { sessionId, classId } } },
+        { $set: setUpdate },
+        { arrayFilters: [{ 'h.sessionId': sessionId, 'h.classId': classId }] }
+      );
+    }
+
+    return updatedClass;
   }
 
   /**
