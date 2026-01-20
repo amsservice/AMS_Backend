@@ -19,6 +19,11 @@ export interface TeacherDoc extends Document {
   password: string;
   schoolId: Types.ObjectId;
   phone?: string;
+  dob?: Date;
+  gender?: 'male' | 'female' | 'other';
+  highestQualification?: string;
+  experienceYears?: number;
+  address?: string;
   isActive: boolean;
   leftAt?: Date;
   history: TeacherSessionHistory[];
@@ -64,6 +69,33 @@ const TeacherSchema = new Schema<TeacherDoc>(
     },
 
     phone: String,
+
+    dob: {
+      type: Date
+    },
+
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'other']
+    },
+
+    highestQualification: {
+      type: String,
+      trim: true,
+      maxlength: 100
+    },
+
+    experienceYears: {
+      type: Number,
+      min: 0,
+      max: 60
+    },
+
+    address: {
+      type: String,
+      trim: true,
+      maxlength: 250
+    },
 
     isActive: {
       type: Boolean,

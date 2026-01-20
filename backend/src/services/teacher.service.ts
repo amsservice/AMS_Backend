@@ -11,7 +11,17 @@ export class TeacherService {
    */
   static async createTeacher(
     schoolId: Types.ObjectId,
-    data: { name: string; email: string; password: string }
+    data: {
+      name: string;
+      email: string;
+      password: string;
+      phone?: string;
+      dob?: Date;
+      gender?: 'male' | 'female' | 'other';
+      highestQualification?: string;
+      experienceYears?: number;
+      address?: string;
+    }
   ) {
     return Teacher.create({ ...data, schoolId, history: [] });
   }
@@ -128,13 +138,29 @@ export class TeacherService {
   */
   static async updateMyProfile(
     teacherId: string,
-    data: { name?: string; phone?: string; password?: string }
+    data: {
+      name?: string;
+      phone?: string;
+      dob?: Date;
+      gender?: 'male' | 'female' | 'other';
+      highestQualification?: string;
+      experienceYears?: number;
+      address?: string;
+      password?: string;
+    }
   ) {
     const teacher = await Teacher.findById(teacherId).select('+password');
     if (!teacher) throw new Error('Teacher not found');
 
     if (data.name) teacher.name = data.name;
     if (data.phone) teacher.phone = data.phone;
+    if (data.dob) teacher.dob = data.dob;
+    if (data.gender) teacher.gender = data.gender;
+    if (data.highestQualification)
+      teacher.highestQualification = data.highestQualification;
+    if (typeof data.experienceYears === 'number')
+      teacher.experienceYears = data.experienceYears;
+    if (data.address) teacher.address = data.address;
     if (data.password) teacher.password = data.password; // hashed by schema
 
     return teacher.save();

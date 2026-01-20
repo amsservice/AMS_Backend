@@ -275,7 +275,15 @@ export const createTeacherSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   email: z.email(),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  phone: z.string().optional()
+  phone: z
+    .string()
+    .regex(/^[0-9]{10,13}$/, 'Phone must be 10 to 13 digits')
+    .optional(),
+  dob: z.coerce.date().optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  highestQualification: z.string().min(2).max(100).optional(),
+  experienceYears: z.number().int().min(0).max(60).optional(),
+  address: z.string().min(5).max(250).optional()
 });
 
 //  Update Teacher by Principal
@@ -283,7 +291,15 @@ export const updateTeacherSchema = z.object({
   name: z.string().min(3).optional(),
   email: z.email().optional(),
   password: z.string().min(6).optional(),
-  phone: z.string().optional()
+  phone: z
+    .string()
+    .regex(/^[0-9]{10,13}$/, 'Phone must be 10 to 13 digits')
+    .optional(),
+  dob: z.coerce.date().optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  highestQualification: z.string().min(2).max(100).optional(),
+  experienceYears: z.number().int().min(0).max(60).optional(),
+  address: z.string().min(5).max(250).optional()
 });
 
 //  Assign Class to Teacher (Principal)
@@ -300,7 +316,15 @@ export const assignClassToTeacherSchema = z.object({
 //  Teacher Update Own Profile
 export const updateMyProfileSchema = z.object({
   name: z.string().min(3).optional(),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .regex(/^[0-9]{10,13}$/, 'Phone must be 10 to 13 digits')
+    .optional(),
+  dob: z.coerce.date().optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  highestQualification: z.string().min(2).max(100).optional(),
+  experienceYears: z.number().int().min(0).max(60).optional(),
+  address: z.string().min(5).max(250).optional(),
   password: z.string().min(6).optional()
 });
 
