@@ -78,13 +78,18 @@ export class SessionService {
 
   /* =========================
      UPDATE SESSION
-     - ONLY TOGGLE isActive
-     - NO DATA COPY
+     - Edit name / dates
+     - Toggle isActive
   ========================= */
   static async updateSession(
     schoolId: Types.ObjectId,
     sessionId: Types.ObjectId,
-    data: { isActive?: boolean }
+    data: {
+      name?: string;
+      startDate?: Date;
+      endDate?: Date;
+      isActive?: boolean;
+    }
   ) {
     const session = await Session.findOne({
       _id: sessionId,
@@ -93,6 +98,30 @@ export class SessionService {
 
     if (!session) {
       throw new Error('Session not found');
+    }
+
+    if (typeof data.name === 'string') {
+      session.name = data.name;
+    }
+
+    const nextStartDate = data.startDate ? new Date(data.startDate) : session.startDate;
+    const nextEndDate = data.endDate ? new Date(data.endDate) : session.endDate;
+
+    if (data.startDate || data.endDate) {
+      if (nextEndDate.getTime() < nextStartDate.getTime()) {
+        throw new Error('End date cannot be smaller than start date');
+      }
+
+      const diffDays =
+        (nextEndDate.getTime() - nextStartDate.getTime()) /
+        (1000 * 60 * 60 * 24);
+
+      if (diffDays > 730) {
+        throw new Error('Session duration cannot be more than 730 days');
+      }
+
+      session.startDate = nextStartDate;
+      session.endDate = nextEndDate;
     }
 
     if (data.isActive === true) {
