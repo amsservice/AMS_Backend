@@ -211,14 +211,48 @@ export const createSessionSchema = z.object({
   name: z.string().min(3),              // "2024-25"
   startDate: z.coerce.date(),
   endDate: z.coerce.date()
-});
+}).refine(
+  (data) => data.endDate.getTime() >= data.startDate.getTime(),
+  {
+    message: 'End date cannot be smaller than start date',
+    path: ['endDate']
+  }
+).refine(
+  (data) => {
+    const diffInDays = (data.endDate.getTime() - data.startDate.getTime()) / (1000 * 60 * 60 * 24);
+    return diffInDays <= 730;
+  },
+  {
+    message: 'Session duration cannot be more than 730 days',
+    path: ['endDate']
+  }
+);
 
 export const updateSessionSchema = z.object({
   name: z.string().min(3).optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
   isActive: z.boolean().optional()
-});
+}).refine(
+  (data) => {
+    if (!data.startDate || !data.endDate) return true;
+    return data.endDate.getTime() >= data.startDate.getTime();
+  },
+  {
+    message: 'End date cannot be smaller than start date',
+    path: ['endDate']
+  }
+).refine(
+  (data) => {
+    if (!data.startDate || !data.endDate) return true;
+    const diffInDays = (data.endDate.getTime() - data.startDate.getTime()) / (1000 * 60 * 60 * 24);
+    return diffInDays <= 730;
+  },
+  {
+    message: 'Session duration cannot be more than 730 days',
+    path: ['endDate']
+  }
+);
 
 
 /* 

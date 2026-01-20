@@ -21,12 +21,16 @@ export class SessionService {
     const startDate = new Date(data.startDate);
     const endDate = new Date(data.endDate);
 
+    if (endDate.getTime() < startDate.getTime()) {
+      throw new Error('End date cannot be smaller than start date');
+    }
+
     const diffDays =
       (endDate.getTime() - startDate.getTime()) /
       (1000 * 60 * 60 * 24);
 
-    if (diffDays > 365) {
-      throw new Error('Session duration cannot be more than one year');
+    if (diffDays > 730) {
+      throw new Error('Session duration cannot be more than 730 days');
     }
 
     return Session.create({
