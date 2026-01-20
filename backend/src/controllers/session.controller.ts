@@ -100,6 +100,39 @@ export const updateSession = async (req: AuthRequest, res: Response) => {
 };
 
 /* =====================================================
+   GET SESSION DELETE STATUS (Principal only)
+   - Returns canDelete and hasAssociatedData status
+===================================================== */
+export const getSessionDeleteStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid session id'
+      });
+    }
+
+    const schoolId = new Types.ObjectId(req.user!.schoolId);
+    const sessionId = new Types.ObjectId(req.params.id);
+
+    const status = await SessionService.getSessionDeleteStatus(
+      schoolId,
+      sessionId
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: status
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+/* =====================================================
    DELETE SESSION (Principal only)
    - ONLY inactive sessions can be deleted
    - No related data is touched

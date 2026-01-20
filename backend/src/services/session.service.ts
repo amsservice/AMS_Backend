@@ -3,8 +3,35 @@ import { Types } from 'mongoose';
 import { Session } from '../models/Session';
 import { Teacher } from '../models/Teacher';
 import { Student } from '../models/Student';
+import { Class } from '../models/Class';
+import { Holiday } from '../models/Holiday';
 
 export class SessionService {
+  static async getSessionDeleteStatus(
+    schoolId: Types.ObjectId,
+    sessionId: Types.ObjectId
+  ) {
+    const hasClasses = await Class.exists({ schoolId, sessionId });
+    const hasHolidays = await Holiday.exists({ schoolId, sessionId });
+    const hasTeacherHistory = await Teacher.exists({
+      schoolId,
+      'history.sessionId': sessionId
+    });
+    const hasStudentHistory = await Student.exists({
+      schoolId,
+      'history.sessionId': sessionId
+    });
+
+    const hasAssociatedData = Boolean(
+      hasClasses || hasHolidays || hasTeacherHistory || hasStudentHistory
+    );
+
+    return {
+      canDelete: !hasAssociatedData,
+      hasAssociatedData
+    };
+  }
+
   /* =========================
      CREATE SESSION
      - ALWAYS INACTIVE
@@ -148,6 +175,11 @@ await Teacher.updateMany(
 
     if (session.isActive) {
       throw new Error('Active session cannot be deleted');
+    }
+
+    const status = await this.getSessionDeleteStatus(schoolId, sessionId);
+    if (!status.canDelete) {
+      throw new Error('Cannot delete session because data is associated with it');
     }
 
     await session.deleteOne();
