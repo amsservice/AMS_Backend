@@ -62,6 +62,7 @@ const StudentSessionSchema = new Schema<StudentSessionHistory>(
     rollNo: {
       type: Number,
       required: true
+      
     },
     isActive: {
       type: Boolean,

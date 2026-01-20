@@ -218,14 +218,35 @@ export const swapTeacherClasses = async (
    TEACHER (SELF)
    GET FULL TEACHER PROFILE (ALL DETAILS)
 ====================================================== */
-export const getMyFullProfile = async (
+/* ======================================================
+   TEACHER / PRINCIPAL
+   GET FULL TEACHER DETAILS
+====================================================== */
+export const getTeacherFullProfileByRole = async (
   req: AuthRequest,
   res: Response
 ) => {
   try {
-    const teacherId = req.user!.userId;
+    const role = req.user!.role;
+    let teacherId: string;
 
-    const teacher = await TeacherService.getTeacherFullProfile(teacherId);
+    if (role === 'teacher') {
+      // Teacher can see ONLY own profile
+      teacherId = req.user!.userId;
+    } else if (role === 'principal') {
+      // Principal can see ANY teacher
+      teacherId = req.params.id;
+      if (!teacherId) {
+        return res.status(400).json({
+          message: 'Teacher ID is required'
+        });
+      }
+    } else {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const teacher =
+      await TeacherService.getTeacherFullProfile(teacherId);
 
     res.status(200).json({
       success: true,
@@ -238,3 +259,39 @@ export const getMyFullProfile = async (
     });
   }
 };
+
+
+/* ======================================================
+   TEACHER / PRINCIPAL
+   UPDATE TEACHER PROFILE
+====================================================== */
+export const updateTeacherProfileByRole = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const role = req.user!.role;
+
+    const teacher = await TeacherService.updateTeacherProfile(
+      {
+        schoolId: new Types.ObjectId(req.user!.schoolId),
+        requesterRole: role,
+        requesterId: req.user!.userId,
+        teacherId: role === 'principal' ? req.params.id : undefined
+      },
+      req.body
+    );
+
+    res.status(200).json({
+      success: true,
+      data: teacher
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+

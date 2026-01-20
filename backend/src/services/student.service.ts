@@ -703,4 +703,64 @@ export class StudentService {
       studentId: student._id.toString()
     };
   }
+
+
+  //get full detail of students 
+
+    /* =====================================================
+     PRINCIPAL → GET ANY STUDENT OF SCHOOL
+  ===================================================== */
+  static async getStudentForPrincipal(
+    schoolId: string,
+    studentId: string
+  ) {
+    return Student.findOne({
+      _id: new Types.ObjectId(studentId),
+      schoolId: new Types.ObjectId(schoolId)
+    })
+      .select('-password')
+      .lean();
+  }
+
+  /* =====================================================
+     TEACHER → GET STUDENT OF OWN ACTIVE CLASS
+  ===================================================== */
+  static async getStudentForTeacher(
+    teacherId: string,
+    studentId: string
+  ) {
+    const teacher = await Teacher.findById(teacherId).lean();
+    if (!teacher) {
+      throw new Error('Teacher not found');
+    }
+
+    const activeClass = teacher.history.find(h => h.isActive);
+    if (!activeClass) {
+      throw new Error('Teacher has no active class');
+    }
+
+    return Student.findOne({
+      _id: new Types.ObjectId(studentId),
+      schoolId: teacher.schoolId,
+      history: {
+        $elemMatch: {
+          classId: activeClass.classId,
+          sessionId: activeClass.sessionId,
+          isActive: true
+        }
+      }
+    })
+      .select('-password')
+      .lean();
+  }
+
+  /* =====================================================
+     STUDENT → GET OWN FULL PROFILE
+  ===================================================== */
+  static async getStudentForStudent(studentId: string) {
+    return Student.findById(studentId)
+      .select('-password')
+      .lean();
+  }
+
 }
