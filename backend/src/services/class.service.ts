@@ -3,6 +3,8 @@
 // services/class.service.ts
 import { Class } from '../models/Class';
 import { Types } from 'mongoose';
+import { Student } from '../models/Student';
+import { Teacher } from '../models/Teacher';
 
 interface CreateClassInput {
   name: string;
@@ -96,11 +98,46 @@ export class ClassService {
     schoolId: Types.ObjectId,
     sessionId: Types.ObjectId
   ) {
-    return Class.findOneAndDelete({
+    const classDoc = await Class.findOne({
       _id: classId,
       schoolId,
       sessionId
     });
+
+    if (!classDoc) return null;
+
+    const hasStudents = await Student.exists({
+      schoolId,
+      history: {
+        $elemMatch: {
+          sessionId,
+          classId,
+          isActive: true
+        }
+      }
+    });
+
+    const hasTeacherAssigned = Boolean(classDoc.teacherId);
+
+    const hasTeacherHistory = await Teacher.exists({
+      schoolId,
+      history: {
+        $elemMatch: {
+          sessionId,
+          classId,
+          isActive: true
+        }
+      }
+    });
+
+    if (hasStudents || hasTeacherAssigned || hasTeacherHistory) {
+      throw new Error(
+        'Cannot delete class because students or teacher are associated with it'
+      );
+    }
+
+    await classDoc.deleteOne();
+    return classDoc;
   }
 
 
