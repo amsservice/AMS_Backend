@@ -15,9 +15,9 @@ export class TeacherService {
       name: string;
       email: string;
       password: string;
-      phone?: string;
-      dob?: Date;
-      gender?: 'male' | 'female' | 'other';
+      phone: string;
+      dob: Date;
+      gender: 'male' | 'female' | 'other';
       highestQualification?: string;
       experienceYears?: number;
       address?: string;

@@ -18,9 +18,9 @@ export interface TeacherDoc extends Document {
   email: string;
   password: string;
   schoolId: Types.ObjectId;
-  phone?: string;
-  dob?: Date;
-  gender?: 'male' | 'female' | 'other';
+  phone: string;
+  dob: Date;
+  gender: 'male' | 'female' | 'other';
   highestQualification?: string;
   experienceYears?: number;
   address?: string;
@@ -68,15 +68,21 @@ const TeacherSchema = new Schema<TeacherDoc>(
       index: true
     },
 
-    phone: String,
+    phone: {
+      type: String,
+      required: true,
+      match: [/^\d{10}$/, 'Phone must be exactly 10 digits']
+    },
 
     dob: {
-      type: Date
+      type: Date,
+      required: true
     },
 
     gender: {
       type: String,
-      enum: ['male', 'female', 'other']
+      enum: ['male', 'female', 'other'],
+      required: true
     },
 
     highestQualification: {

@@ -275,12 +275,23 @@ export const createTeacherSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   email: z.email(),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  phone: z
-    .string()
-    .regex(/^[0-9]{10,13}$/, 'Phone must be 10 to 13 digits')
-    .optional(),
-  dob: z.coerce.date().optional(),
-  gender: z.enum(['male', 'female', 'other']).optional(),
+  phone: z.string().regex(/^\d{10}$/, 'Phone must be exactly 10 digits'),
+  dob: z
+    .coerce
+    .date()
+    .refine(
+      (d) => {
+        const today = new Date();
+        let age = today.getFullYear() - d.getFullYear();
+        const m = today.getMonth() - d.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < d.getDate())) {
+          age -= 1;
+        }
+        return age >= 18;
+      },
+      { message: 'Teacher must be at least 18 years old' }
+    ),
+  gender: z.enum(['male', 'female', 'other'], { message: 'Gender is required' }),
   highestQualification: z.string().min(2).max(100).optional(),
   experienceYears: z.number().int().min(0).max(60).optional(),
   address: z.string().min(5).max(250).optional()
