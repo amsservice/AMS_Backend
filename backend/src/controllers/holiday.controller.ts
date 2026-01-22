@@ -22,6 +22,53 @@ export const createHoliday = async (
       return;
     }
 
+    const trimmedName = String(name).trim();
+    if (!/^[A-Za-z0-9\s]+$/.test(trimmedName)) {
+      res.status(400).json({
+        message: 'Holiday name can contain only letters, numbers, and spaces'
+      });
+      return;
+    }
+
+    const lettersCount = (trimmedName.match(/[A-Za-z]/g) || []).length;
+    if (lettersCount < 3) {
+      res.status(400).json({ message: 'Holiday name must contain at least 3 letters' });
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    if (Number.isNaN(start.getTime())) {
+      res.status(400).json({ message: 'Invalid start date' });
+      return;
+    }
+
+    if (start.getTime() <= today.getTime()) {
+      res.status(400).json({ message: 'Holiday can be marked only on future dates' });
+      return;
+    }
+
+    let end: Date | undefined;
+    if (endDate) {
+      end = new Date(endDate);
+      end.setHours(0, 0, 0, 0);
+      if (Number.isNaN(end.getTime())) {
+        res.status(400).json({ message: 'Invalid end date' });
+        return;
+      }
+      if (end.getTime() <= today.getTime()) {
+        res.status(400).json({ message: 'Holiday can be marked only on future dates' });
+        return;
+      }
+      if (end.getTime() < start.getTime()) {
+        res.status(400).json({ message: 'End date must be greater than or equal to start date' });
+        return;
+      }
+    }
+
     // ✅ Get active session
     const activeSession = await Session.findOne({
       schoolId: req.user!.schoolId,
@@ -37,9 +84,9 @@ export const createHoliday = async (
 
     // ✅ Create holiday
     const holiday = await HolidayService.createHoliday({
-      name,
-     startDate: new Date(startDate),
-      endDate: endDate ? new Date(endDate) : undefined,
+      name: trimmedName,
+      startDate: start,
+      endDate: end,
       description,
       category,
       schoolId:new Types.ObjectId(req.user!.schoolId),
@@ -54,7 +101,7 @@ export const createHoliday = async (
     // 🔁 Duplicate holiday (same date)
     if (error.code === 11000) {
       res.status(409).json({
-        message: 'Holiday already exists for this date'
+        message: 'Duplicate holiday key'
       });
       return;
     }
@@ -116,11 +163,77 @@ export const updateHoliday = async (
       return;
     }
 
+    const data: any = { ...req.body };
+
+    if (typeof data.name === 'string') {
+      const trimmedName = data.name.trim();
+      if (!/^[A-Za-z0-9\s]+$/.test(trimmedName)) {
+        res.status(400).json({
+          message: 'Holiday name can contain only letters, numbers, and spaces'
+        });
+        return;
+      }
+
+      const lettersCount = (trimmedName.match(/[A-Za-z]/g) || []).length;
+      if (lettersCount < 3) {
+        res.status(400).json({ message: 'Holiday name must contain at least 3 letters' });
+        return;
+      }
+      data.name = trimmedName;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (data.startDate) {
+      const start = new Date(data.startDate);
+      start.setHours(0, 0, 0, 0);
+      if (Number.isNaN(start.getTime())) {
+        res.status(400).json({ message: 'Invalid start date' });
+        return;
+      }
+      if (start.getTime() <= today.getTime()) {
+        res.status(400).json({ message: 'Holiday can be marked only on future dates' });
+        return;
+      }
+      data.startDate = start;
+
+      if (data.endDate) {
+        const end = new Date(data.endDate);
+        end.setHours(0, 0, 0, 0);
+        if (Number.isNaN(end.getTime())) {
+          res.status(400).json({ message: 'Invalid end date' });
+          return;
+        }
+        if (end.getTime() <= today.getTime()) {
+          res.status(400).json({ message: 'Holiday can be marked only on future dates' });
+          return;
+        }
+        if (end.getTime() < start.getTime()) {
+          res.status(400).json({ message: 'End date must be greater than or equal to start date' });
+          return;
+        }
+        data.endDate = end;
+      }
+    } else if (data.endDate) {
+      const end = new Date(data.endDate);
+      end.setHours(0, 0, 0, 0);
+      if (Number.isNaN(end.getTime())) {
+        res.status(400).json({ message: 'Invalid end date' });
+        return;
+      }
+      if (end.getTime() <= today.getTime()) {
+        res.status(400).json({ message: 'Holiday can be marked only on future dates' });
+        return;
+      }
+      data.endDate = end;
+    }
+
     const updated = await HolidayService.updateHoliday(
       new Types.ObjectId(req.params.id),
       new Types.ObjectId(req.user!.schoolId),
       session._id,
-      req.body
+      data
     );
 
     if (!updated) {
