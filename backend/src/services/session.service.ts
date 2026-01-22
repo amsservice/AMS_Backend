@@ -3,8 +3,35 @@ import { Types } from 'mongoose';
 import { Session } from '../models/Session';
 import { Teacher } from '../models/Teacher';
 import { Student } from '../models/Student';
+import { Class } from '../models/Class';
+import { Holiday } from '../models/Holiday';
 
 export class SessionService {
+  static async getSessionDeleteStatus(
+    schoolId: Types.ObjectId,
+    sessionId: Types.ObjectId
+  ) {
+    const hasClasses = await Class.exists({ schoolId, sessionId });
+    const hasHolidays = await Holiday.exists({ schoolId, sessionId });
+    const hasTeacherHistory = await Teacher.exists({
+      schoolId,
+      'history.sessionId': sessionId
+    });
+    const hasStudentHistory = await Student.exists({
+      schoolId,
+      'history.sessionId': sessionId
+    });
+
+    const hasAssociatedData = Boolean(
+      hasClasses || hasHolidays || hasTeacherHistory || hasStudentHistory
+    );
+
+    return {
+      canDelete: !hasAssociatedData,
+      hasAssociatedData
+    };
+  }
+
   /* =========================
      CREATE SESSION
      - ALWAYS INACTIVE
@@ -21,12 +48,16 @@ export class SessionService {
     const startDate = new Date(data.startDate);
     const endDate = new Date(data.endDate);
 
+    if (endDate.getTime() < startDate.getTime()) {
+      throw new Error('End date cannot be smaller than start date');
+    }
+
     const diffDays =
       (endDate.getTime() - startDate.getTime()) /
       (1000 * 60 * 60 * 24);
 
-    if (diffDays > 365) {
-      throw new Error('Session duration cannot be more than one year');
+    if (diffDays > 730) {
+      throw new Error('Session duration cannot be more than 730 days');
     }
 
     return Session.create({
@@ -47,13 +78,18 @@ export class SessionService {
 
   /* =========================
      UPDATE SESSION
-     - ONLY TOGGLE isActive
-     - NO DATA COPY
+     - Edit name / dates
+     - Toggle isActive
   ========================= */
   static async updateSession(
     schoolId: Types.ObjectId,
     sessionId: Types.ObjectId,
-    data: { isActive?: boolean }
+    data: {
+      name?: string;
+      startDate?: Date;
+      endDate?: Date;
+      isActive?: boolean;
+    }
   ) {
     const session = await Session.findOne({
       _id: sessionId,
@@ -62,6 +98,30 @@ export class SessionService {
 
     if (!session) {
       throw new Error('Session not found');
+    }
+
+    if (typeof data.name === 'string') {
+      session.name = data.name;
+    }
+
+    const nextStartDate = data.startDate ? new Date(data.startDate) : session.startDate;
+    const nextEndDate = data.endDate ? new Date(data.endDate) : session.endDate;
+
+    if (data.startDate || data.endDate) {
+      if (nextEndDate.getTime() < nextStartDate.getTime()) {
+        throw new Error('End date cannot be smaller than start date');
+      }
+
+      const diffDays =
+        (nextEndDate.getTime() - nextStartDate.getTime()) /
+        (1000 * 60 * 60 * 24);
+
+      if (diffDays > 730) {
+        throw new Error('Session duration cannot be more than 730 days');
+      }
+
+      session.startDate = nextStartDate;
+      session.endDate = nextEndDate;
     }
 
     if (data.isActive === true) {
@@ -144,6 +204,11 @@ await Teacher.updateMany(
 
     if (session.isActive) {
       throw new Error('Active session cannot be deleted');
+    }
+
+    const status = await this.getSessionDeleteStatus(schoolId, sessionId);
+    if (!status.canDelete) {
+      throw new Error('Cannot delete session because data is associated with it');
     }
 
     await session.deleteOne();

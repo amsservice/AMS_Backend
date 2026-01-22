@@ -211,14 +211,48 @@ export const createSessionSchema = z.object({
   name: z.string().min(3),              // "2024-25"
   startDate: z.coerce.date(),
   endDate: z.coerce.date()
-});
+}).refine(
+  (data) => data.endDate.getTime() >= data.startDate.getTime(),
+  {
+    message: 'End date cannot be smaller than start date',
+    path: ['endDate']
+  }
+).refine(
+  (data) => {
+    const diffInDays = (data.endDate.getTime() - data.startDate.getTime()) / (1000 * 60 * 60 * 24);
+    return diffInDays <= 730;
+  },
+  {
+    message: 'Session duration cannot be more than 730 days',
+    path: ['endDate']
+  }
+);
 
 export const updateSessionSchema = z.object({
   name: z.string().min(3).optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
   isActive: z.boolean().optional()
-});
+}).refine(
+  (data) => {
+    if (!data.startDate || !data.endDate) return true;
+    return data.endDate.getTime() >= data.startDate.getTime();
+  },
+  {
+    message: 'End date cannot be smaller than start date',
+    path: ['endDate']
+  }
+).refine(
+  (data) => {
+    if (!data.startDate || !data.endDate) return true;
+    const diffInDays = (data.endDate.getTime() - data.startDate.getTime()) / (1000 * 60 * 60 * 24);
+    return diffInDays <= 730;
+  },
+  {
+    message: 'Session duration cannot be more than 730 days',
+    path: ['endDate']
+  }
+);
 
 
 /* 
@@ -241,7 +275,26 @@ export const createTeacherSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   email: z.email(),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  phone: z.string().optional()
+  phone: z.string().regex(/^\d{10}$/, 'Phone must be exactly 10 digits'),
+  dob: z
+    .coerce
+    .date()
+    .refine(
+      (d) => {
+        const today = new Date();
+        let age = today.getFullYear() - d.getFullYear();
+        const m = today.getMonth() - d.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < d.getDate())) {
+          age -= 1;
+        }
+        return age >= 18;
+      },
+      { message: 'Teacher must be at least 18 years old' }
+    ),
+  gender: z.enum(['male', 'female', 'other'], { message: 'Gender is required' }),
+  highestQualification: z.string().min(2).max(100).optional(),
+  experienceYears: z.number().int().min(0).max(60).optional(),
+  address: z.string().min(5).max(250).optional()
 });
 
 //  Update Teacher by Principal
@@ -249,7 +302,15 @@ export const updateTeacherSchema = z.object({
   name: z.string().min(3).optional(),
   email: z.email().optional(),
   password: z.string().min(6).optional(),
-  phone: z.string().optional()
+  phone: z
+    .string()
+    .regex(/^[0-9]{10,13}$/, 'Phone must be 10 to 13 digits')
+    .optional(),
+  dob: z.coerce.date().optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  highestQualification: z.string().min(2).max(100).optional(),
+  experienceYears: z.number().int().min(0).max(60).optional(),
+  address: z.string().min(5).max(250).optional()
 });
 
 //  Assign Class to Teacher (Principal)
@@ -266,7 +327,15 @@ export const assignClassToTeacherSchema = z.object({
 //  Teacher Update Own Profile
 export const updateMyProfileSchema = z.object({
   name: z.string().min(3).optional(),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .regex(/^[0-9]{10,13}$/, 'Phone must be 10 to 13 digits')
+    .optional(),
+  dob: z.coerce.date().optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  highestQualification: z.string().min(2).max(100).optional(),
+  experienceYears: z.number().int().min(0).max(60).optional(),
+  address: z.string().min(5).max(250).optional(),
   password: z.string().min(6).optional()
 });
 

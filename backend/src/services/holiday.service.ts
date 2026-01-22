@@ -56,12 +56,6 @@ async function checkOverlap(
 
 export class HolidayService {
   static async createHoliday(data: CreateHolidayInput): Promise<IHoliday> {
-    await checkOverlap(
-      data.schoolId,
-      data.sessionId,
-      data.startDate,
-      data.endDate
-    );
     return Holiday.create(data);
   }
 /* -------- READ -------- */
@@ -81,16 +75,6 @@ export class HolidayService {
    // ✅ normalize null → undefined
     const normalizedEndDate =
       data.endDate === null ? undefined : data.endDate;
-
-    if (data.startDate) {
-      await checkOverlap(
-        schoolId,
-        sessionId,
-        data.startDate,
-        normalizedEndDate,
-        id
-      );
-    }
 
     return Holiday.findOneAndUpdate(
       { _id: id, schoolId },

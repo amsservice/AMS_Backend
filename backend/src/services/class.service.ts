@@ -3,6 +3,8 @@
 // services/class.service.ts
 import { Class } from '../models/Class';
 import { Types } from 'mongoose';
+import { Student } from '../models/Student';
+import { Teacher } from '../models/Teacher';
 
 interface CreateClassInput {
   name: string;
@@ -71,7 +73,7 @@ export class ClassService {
     data: UpdateClassInput
    
   ) {
-    return Class.findOneAndUpdate(
+    const updatedClass = await Class.findOneAndUpdate(
       {
         _id: classId,
         schoolId,
@@ -86,6 +88,30 @@ export class ClassService {
         runValidators: true,
       }
     );
+
+    if (updatedClass && (data.name !== undefined || data.section !== undefined)) {
+      const setUpdate: Record<string, any> = {};
+      if (data.name !== undefined) {
+        setUpdate['history.$[h].className'] = updatedClass.name;
+      }
+      if (data.section !== undefined) {
+        setUpdate['history.$[h].section'] = updatedClass.section;
+      }
+
+      await Teacher.updateMany(
+        { schoolId, history: { $elemMatch: { sessionId, classId } } },
+        { $set: setUpdate },
+        { arrayFilters: [{ 'h.sessionId': sessionId, 'h.classId': classId }] }
+      );
+
+      await Student.updateMany(
+        { schoolId, history: { $elemMatch: { sessionId, classId } } },
+        { $set: setUpdate },
+        { arrayFilters: [{ 'h.sessionId': sessionId, 'h.classId': classId }] }
+      );
+    }
+
+    return updatedClass;
   }
 
   /**
@@ -96,11 +122,46 @@ export class ClassService {
     schoolId: Types.ObjectId,
     sessionId: Types.ObjectId
   ) {
-    return Class.findOneAndDelete({
+    const classDoc = await Class.findOne({
       _id: classId,
       schoolId,
       sessionId
     });
+
+    if (!classDoc) return null;
+
+    const hasStudents = await Student.exists({
+      schoolId,
+      history: {
+        $elemMatch: {
+          sessionId,
+          classId,
+          isActive: true
+        }
+      }
+    });
+
+    const hasTeacherAssigned = Boolean(classDoc.teacherId);
+
+    const hasTeacherHistory = await Teacher.exists({
+      schoolId,
+      history: {
+        $elemMatch: {
+          sessionId,
+          classId,
+          isActive: true
+        }
+      }
+    });
+
+    if (hasStudents || hasTeacherAssigned || hasTeacherHistory) {
+      throw new Error(
+        'Cannot delete class because students or teacher are associated with it'
+      );
+    }
+
+    await classDoc.deleteOne();
+    return classDoc;
   }
 
 

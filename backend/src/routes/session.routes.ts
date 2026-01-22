@@ -3,7 +3,8 @@ import {
   createSession,
   getSessions,
   updateSession,
-  deleteSession
+  deleteSession,
+  getSessionDeleteStatus
 } from '../controllers/session.controller';
 
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -26,6 +27,12 @@ router.post(
 );
 
 router.get('/', getSessions);
+
+router.get(
+  '/:id/delete-status',
+  allowRoles(['principal']),
+  getSessionDeleteStatus
+);
 
 router.put(
   '/:id',

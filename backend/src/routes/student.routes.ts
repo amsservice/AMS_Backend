@@ -90,6 +90,13 @@ router.put(
   changeMyPassword
 );
 
+router.get(
+  '/school-students',
+  authMiddleware,
+  allowRoles(['principal']),
+  getSchoolStudents
+);
+
 /* =====================================================
    GET FULL STUDENT DETAILS
    principal | teacher | student (self only)
@@ -120,13 +127,6 @@ router.get(
   authMiddleware,
   allowRoles(['teacher']),
   getMyStudents
-);
-
-router.get(
-  '/school-students',
-  authMiddleware,
-  allowRoles(['principal']),
-  getSchoolStudents
 );
 
 router.get(
