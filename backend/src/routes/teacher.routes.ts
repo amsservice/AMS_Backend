@@ -10,6 +10,7 @@ import {
   changeMyPassword,
   getActiveTeacherCount,
   deactivateTeacher,
+  activateTeacher,
   swapTeacherClasses,
   getTeacherFullProfileByRole,
   updateTeacherProfileByRole
@@ -74,7 +75,10 @@ router.post(
   assignClassToTeacher
 );
 //deactivate teacher
-router.put('/:teacherId/deactivate', deactivateTeacher);
+router.put('/:teacherId/deactivate', allowRoles(['principal']), deactivateTeacher);
+
+//activate teacher
+router.put('/:teacherId/activate', allowRoles(['principal']), activateTeacher);
 
 
 /* ======================================================
