@@ -272,10 +272,18 @@ export const createClassSchema = z.object({
 
 //  Create Teacher (Principal)
 export const createTeacherSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters'),
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .refine(
+      (v) => ((v ?? '').trim().match(/[A-Za-z]/g) || []).length >= 3,
+      { message: 'Name must contain at least 3 letters' }
+    ),
   email: z.email(),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  phone: z.string().regex(/^\d{10}$/, 'Phone must be exactly 10 digits'),
+  phone: z
+    .string()
+    .regex(/^\d{10}$/, 'Phone must be exactly 10 digits (numbers only)'),
   dob: z
     .coerce
     .date()
@@ -289,28 +297,92 @@ export const createTeacherSchema = z.object({
         }
         return age >= 18;
       },
-      { message: 'Teacher must be at least 18 years old' }
+      { message: 'DOB must be at least 18 years ago' }
     ),
   gender: z.enum(['male', 'female', 'other'], { message: 'Gender is required' }),
-  highestQualification: z.string().min(2).max(100).optional(),
-  experienceYears: z.number().int().min(0).max(60).optional(),
-  address: z.string().min(5).max(250).optional()
+  highestQualification: z
+    .string()
+    .min(1)
+    .max(100)
+    .refine(
+      (v) => ((v ?? '').trim().match(/[A-Za-z]/g) || []).length >= 2,
+      { message: 'Highest qualification must contain at least 2 letters' }
+    )
+    .optional(),
+  experienceYears: z
+    .number()
+    .int()
+    .min(0, 'Experience cannot be negative')
+    .max(42, 'Experience cannot be greater than 42 years')
+    .optional(),
+  address: z
+    .string()
+    .min(1)
+    .max(250)
+    .refine(
+      (v) => ((v ?? '').trim().match(/[A-Za-z]/g) || []).length >= 5,
+      { message: 'Address must contain at least 5 letters' }
+    )
+    .optional()
 });
 
 //  Update Teacher by Principal
 export const updateTeacherSchema = z.object({
-  name: z.string().min(3).optional(),
+  name: z
+    .string()
+    .min(1)
+    .refine(
+      (v) => ((v ?? '').trim().match(/[A-Za-z]/g) || []).length >= 3,
+      { message: 'Name must contain at least 3 letters' }
+    )
+    .optional(),
   email: z.email().optional(),
   password: z.string().min(6).optional(),
   phone: z
     .string()
-    .regex(/^[0-9]{10,13}$/, 'Phone must be 10 to 13 digits')
+    .regex(/^\d{10}$/, 'Phone must be exactly 10 digits (numbers only)')
     .optional(),
-  dob: z.coerce.date().optional(),
+  dob: z
+    .coerce
+    .date()
+    .refine(
+      (d) => {
+        const today = new Date();
+        let age = today.getFullYear() - d.getFullYear();
+        const m = today.getMonth() - d.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < d.getDate())) {
+          age -= 1;
+        }
+        return age >= 18;
+      },
+      { message: 'DOB must be at least 18 years ago' }
+    )
+    .optional(),
   gender: z.enum(['male', 'female', 'other']).optional(),
-  highestQualification: z.string().min(2).max(100).optional(),
-  experienceYears: z.number().int().min(0).max(60).optional(),
-  address: z.string().min(5).max(250).optional()
+  highestQualification: z
+    .string()
+    .min(1)
+    .max(100)
+    .refine(
+      (v) => ((v ?? '').trim().match(/[A-Za-z]/g) || []).length >= 2,
+      { message: 'Highest qualification must contain at least 2 letters' }
+    )
+    .optional(),
+  experienceYears: z
+    .number()
+    .int()
+    .min(0, 'Experience cannot be negative')
+    .max(42, 'Experience cannot be greater than 42 years')
+    .optional(),
+  address: z
+    .string()
+    .min(1)
+    .max(250)
+    .refine(
+      (v) => ((v ?? '').trim().match(/[A-Za-z]/g) || []).length >= 5,
+      { message: 'Address must contain at least 5 letters' }
+    )
+    .optional()
 });
 
 //  Assign Class to Teacher (Principal)
@@ -326,16 +398,59 @@ export const assignClassToTeacherSchema = z.object({
 
 //  Teacher Update Own Profile
 export const updateMyProfileSchema = z.object({
-  name: z.string().min(3).optional(),
+  name: z
+    .string()
+    .min(1)
+    .refine(
+      (v) => ((v ?? '').trim().match(/[A-Za-z]/g) || []).length >= 3,
+      { message: 'Name must contain at least 3 letters' }
+    )
+    .optional(),
   phone: z
     .string()
-    .regex(/^[0-9]{10,13}$/, 'Phone must be 10 to 13 digits')
+    .regex(/^\d{10}$/, 'Phone must be exactly 10 digits (numbers only)')
     .optional(),
-  dob: z.coerce.date().optional(),
+  dob: z
+    .coerce
+    .date()
+    .refine(
+      (d) => {
+        const today = new Date();
+        let age = today.getFullYear() - d.getFullYear();
+        const m = today.getMonth() - d.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < d.getDate())) {
+          age -= 1;
+        }
+        return age >= 18;
+      },
+      { message: 'DOB must be at least 18 years ago' }
+    )
+    .optional(),
   gender: z.enum(['male', 'female', 'other']).optional(),
-  highestQualification: z.string().min(2).max(100).optional(),
-  experienceYears: z.number().int().min(0).max(60).optional(),
-  address: z.string().min(5).max(250).optional(),
+  highestQualification: z
+    .string()
+    .min(1)
+    .max(100)
+    .refine(
+      (v) => ((v ?? '').trim().match(/[A-Za-z]/g) || []).length >= 2,
+      { message: 'Highest qualification must contain at least 2 letters' }
+    )
+    .optional(),
+  experienceYears: z
+    .number()
+    .int()
+    .min(0, 'Experience cannot be negative')
+    .max(42, 'Experience cannot be greater than 42 years')
+    .optional(),
+  address: z
+    .string()
+    .min(1)
+    .max(250)
+    .refine(
+      (v) => ((v ?? '').trim().match(/[A-Za-z]/g) || []).length >= 5,
+      { message: 'Address must contain at least 5 letters' }
+    )
+    .optional(),
   password: z.string().min(6).optional()
 });
 
