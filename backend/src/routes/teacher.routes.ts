@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   createTeacher,
+  bulkUploadTeachers,
   listTeachers,
   updateTeacher,
   deleteTeacher,
@@ -19,6 +20,7 @@ import {
 import { authMiddleware } from '../middleware/auth.middleware';
 import { allowRoles } from '../middleware/role.middleware';
 import { validate } from '../middleware/validate.middleware';
+import { uploadCSV } from '../middleware/upload.middleware';
 import {
   createTeacherSchema,
   updateTeacherSchema,
@@ -49,6 +51,13 @@ router.post(
   allowRoles(['principal']),
   validate(createTeacherSchema),
   createTeacher
+);
+
+router.post(
+  '/bulk-upload',
+  allowRoles(['principal']),
+  uploadCSV.single('csvFile'),
+  bulkUploadTeachers
 );
 
 router.get('/', allowRoles(['principal']), listTeachers);

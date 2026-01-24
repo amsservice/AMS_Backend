@@ -3,7 +3,17 @@ import { Teacher } from '../models/Teacher';
 import { Class } from "../models/Class";
 import type { UserRole } from '../utils/jwt';
 
-
+interface BulkTeacherInput {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  dob: Date;
+  gender: 'male' | 'female' | 'other';
+  highestQualification?: string;
+  experienceYears?: number;
+  address?: string;
+}
 
 export class TeacherService {
   /* 
@@ -13,6 +23,7 @@ export class TeacherService {
     schoolId: Types.ObjectId,
     data: {
       name: string;
+
       email: string;
       password: string;
       phone: string;
@@ -24,6 +35,146 @@ export class TeacherService {
     }
   ) {
     return Teacher.create({ ...data, schoolId, history: [] });
+  }
+
+  static async bulkCreateTeachers(
+    params: {
+      schoolId: Types.ObjectId;
+    },
+    teachers: BulkTeacherInput[]
+  ) {
+    if (!teachers.length) {
+      throw new Error('No teachers provided');
+    }
+
+    const validationErrors: { row: number; message: string }[] = [];
+    const seenEmails = new Set<string>();
+
+    teachers.forEach((t, index) => {
+      const row = index + 1;
+
+      const trimmedName = String(t.name || '').trim();
+      const lettersInName = (trimmedName.match(/[A-Za-z]/g) || []).length;
+      if (!trimmedName) validationErrors.push({ row, message: 'Name is required' });
+      else if (lettersInName < 3)
+        validationErrors.push({ row, message: 'Name must contain at least 3 letters' });
+
+      const email = String(t.email || '').trim().toLowerCase();
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      if (!email) validationErrors.push({ row, message: 'Email is required' });
+      else if (!emailOk) validationErrors.push({ row, message: 'Email is invalid' });
+
+      if (email) {
+        if (seenEmails.has(email)) {
+          validationErrors.push({ row, message: 'Duplicate email in CSV' });
+        }
+        seenEmails.add(email);
+      }
+
+      const password = String(t.password || '');
+      if (!password) validationErrors.push({ row, message: 'Password is required' });
+      else if (password.length < 6)
+        validationErrors.push({ row, message: 'Password must be at least 6 characters' });
+
+      const phone = String(t.phone || '').trim();
+      if (!phone) validationErrors.push({ row, message: 'Phone is required' });
+      else if (!/^\d{10}$/.test(phone))
+        validationErrors.push({ row, message: 'Phone must be exactly 10 digits (numbers only)' });
+
+      const dob = t.dob;
+      if (!(dob instanceof Date) || Number.isNaN(dob.getTime())) {
+        validationErrors.push({ row, message: 'DOB is invalid' });
+      } else {
+        const today = new Date();
+        if (dob.getTime() > today.getTime()) {
+          validationErrors.push({ row, message: 'DOB cannot be in the future' });
+        } else {
+          const age =
+            today.getFullYear() -
+            dob.getFullYear() -
+            (today.getMonth() < dob.getMonth() ||
+            (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())
+              ? 1
+              : 0);
+          if (age < 18) validationErrors.push({ row, message: 'DOB must be at least 18 years ago' });
+        }
+      }
+
+      if (!t.gender) validationErrors.push({ row, message: 'Gender is required' });
+      else if (!['male', 'female', 'other'].includes(t.gender))
+        validationErrors.push({ row, message: 'Gender is invalid' });
+
+      if (t.highestQualification !== undefined && String(t.highestQualification).trim() !== '') {
+        const hq = String(t.highestQualification).trim();
+        const letters = (hq.match(/[A-Za-z]/g) || []).length;
+        if (letters < 2)
+          validationErrors.push({ row, message: 'Highest qualification must contain at least 2 letters' });
+        if (hq.length > 100)
+          validationErrors.push({ row, message: 'Highest qualification cannot exceed 100 characters' });
+      }
+
+      if (t.experienceYears !== undefined) {
+        const n = t.experienceYears;
+        if (!Number.isFinite(n) || !Number.isInteger(n)) {
+          validationErrors.push({ row, message: 'Experience years must be a whole number' });
+        } else {
+          if (n < 0) validationErrors.push({ row, message: 'Experience cannot be negative' });
+          if (n > 42) validationErrors.push({ row, message: 'Experience cannot be greater than 42 years' });
+        }
+      }
+
+      if (t.address !== undefined && String(t.address).trim() !== '') {
+        const addr = String(t.address).trim();
+        const letters = (addr.match(/[A-Za-z]/g) || []).length;
+        if (letters < 5) validationErrors.push({ row, message: 'Address must contain at least 5 letters' });
+        if (addr.length > 250) validationErrors.push({ row, message: 'Address cannot exceed 250 characters' });
+      }
+    });
+
+    if (validationErrors.length) {
+      return {
+        success: false,
+        validationErrors
+      };
+    }
+
+    const preparedDocs = teachers.map(t => ({
+      name: String(t.name).trim(),
+      email: String(t.email).trim().toLowerCase(),
+      password: t.password,
+      phone: String(t.phone).trim(),
+      dob: t.dob,
+      gender: t.gender,
+      highestQualification:
+        t.highestQualification !== undefined && String(t.highestQualification).trim() !== ''
+          ? String(t.highestQualification).trim()
+          : undefined,
+      experienceYears: typeof t.experienceYears === 'number' ? t.experienceYears : undefined,
+      address:
+        t.address !== undefined && String(t.address).trim() !== ''
+          ? String(t.address).trim()
+          : undefined,
+      schoolId: params.schoolId,
+      history: []
+    }));
+
+    const mongoSession = await mongoose.startSession();
+    mongoSession.startTransaction();
+
+    try {
+      await Teacher.insertMany(preparedDocs, { session: mongoSession });
+      await mongoSession.commitTransaction();
+      return {
+        success: true,
+        successCount: preparedDocs.length,
+        message: 'Teachers uploaded successfully'
+      };
+    } catch (err) {
+      await mongoSession.abortTransaction();
+      throw err;
+    } finally {
+      mongoSession.endSession();
+    }
   }
 
   /* 
