@@ -23,7 +23,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     // This returns the new accessToken (7-day lifespan)
     res.status(200).json({
       success: true,
-      ...result,
+      // ...result,
     });
   } catch (error: any) {
     res.status(error.statusCode || 401).json({
@@ -92,8 +92,8 @@ export const verifySchoolOtp = async (req: Request, res: Response) => {
     const { email, otp } = req.body;
     const result = await AuthService.verifySchoolOtp(email, otp);
     setAuthCookies(res, result.accessToken, result.refreshToken);
-
-    res.status(200).json(result);
+    const { accessToken, refreshToken, ...safeResult } = result;
+    res.status(200).json(safeResult);
   } catch (error: any) {
     res.status(400).json({
       success: false,
@@ -121,7 +121,8 @@ export const loginPrincipal = async (req: Request, res: Response) => {
       Number(schoolCode),
     );
     setAuthCookies(res, result.accessToken, result.refreshToken);
-    res.status(200).json(result);
+    const { accessToken, refreshToken, ...safeResult } = result;    
+    res.status(200).json(safeResult);
   } catch (error: any) {
     res.status(400).json({
       message: error.message || "Login failed",
@@ -174,8 +175,9 @@ export const getPrincipalProfile = async (req: AuthRequest, res: Response) => {
 export const loginTeacher = async (req: Request, res: Response) => {
   const { email, password } = req.body;
   const result = await AuthService.loginTeacher(email, password);
-
-  res.status(200).json(result);
+  setAuthCookies(res, result.accessToken, result.refreshToken);
+  const { accessToken, refreshToken, ...safeResult } = result; 
+  res.status(200).json(safeResult);
 };
 
 /* ======================================================
@@ -184,8 +186,9 @@ export const loginTeacher = async (req: Request, res: Response) => {
 export const loginStudent = async (req: Request, res: Response) => {
   const { email, password } = req.body;
   const result = await AuthService.loginStudent(email, password);
-
-  res.status(200).json(result);
+  setAuthCookies(res, result.accessToken, result.refreshToken);
+  const { accessToken, refreshToken, ...safeResult } = result; 
+  res.status(200).json(safeResult);
 };
 
 /* ======================================================

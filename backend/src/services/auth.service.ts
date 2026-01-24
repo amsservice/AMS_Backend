@@ -136,22 +136,6 @@ static async refreshAccessToken(refreshToken: string) {
       .toLowerCase()
       .trim();
 
-    // // 1️⃣ Gmail validation
-    // if (!gmailRegex.test(normalizedSchoolEmail)) {
-    //   throw new Error("Only Gmail addresses are allowed");
-    // }
-
-    // // 2️⃣ Temporary email block
-    // const domain = normalizedSchoolEmail.split("@")[1];
-    // if (blockedDomains.includes(domain)) {
-    //   throw new Error("Temporary email addresses are not allowed");
-    // }
-
-    // // 3️⃣ Gmail MX check
-    // if (!(await verifyGmailMx(normalizedSchoolEmail))) {
-    //   throw new Error("Invalid Gmail domain");
-    // }
-
     // 4️⃣ Duplicate school email
     const existingSchool = await School.findOne({
       email: normalizedSchoolEmail,
@@ -506,7 +490,7 @@ static async refreshAccessToken(refreshToken: string) {
     // 3️⃣ Password check
     const isMatch = await principal.comparePassword(password);
     if (!isMatch) {
-      throw new Error("Invalid email or password");
+      throw new Error("Invalid password");
     }
 
     // 4️⃣ Issue JWT
@@ -546,7 +530,7 @@ static async refreshAccessToken(refreshToken: string) {
 
     // 2️⃣ Password check
     const isMatch = await teacher.comparePassword(password);
-    if (!isMatch) throw new Error("Invalid email or password");
+    if (!isMatch) throw new Error("Invalid password");
 
     // 3️⃣ Define the payload using the JwtPayload interface
     const payload: JwtPayload = {
@@ -584,7 +568,7 @@ static async refreshAccessToken(refreshToken: string) {
     if (!student) throw new Error("Invalid email or password");
 
     const isMatch = await student.comparePassword(password);
-    if (!isMatch) throw new Error("Invalid email or password");
+    if (!isMatch) throw new Error("Invalid password");
 
     // 1️⃣ Prepare the payload
     const payload: JwtPayload = {
