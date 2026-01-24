@@ -3,7 +3,8 @@ import { z } from 'zod';
 // Login (Principal / Teacher / Student)
 export const loginSchema = z.object({
   email: z.email(),
-  password: z.string().min(6)
+  password: z.string().min(6),
+  schoolCode: z.coerce.number()
 });
 
 
