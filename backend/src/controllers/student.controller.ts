@@ -211,6 +211,15 @@ export const bulkUploadStudentsSchoolWide = async (
       students
     );
 
+    if (!result?.success) {
+      return res.status(400).json({
+        message: 'CSV validation failed',
+        ...(result as any),
+        invalidRowsCount: invalidRows.length,
+        invalidRows
+      });
+    }
+
     return res.status(201).json({
       ...result,
       invalidRowsCount: invalidRows.length,

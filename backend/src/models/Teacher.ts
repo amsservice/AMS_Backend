@@ -94,7 +94,7 @@ const TeacherSchema = new Schema<TeacherDoc>(
     experienceYears: {
       type: Number,
       min: 0,
-      max: 60
+      max: 42
     },
 
     address: {

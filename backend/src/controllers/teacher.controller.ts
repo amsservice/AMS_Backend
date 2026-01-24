@@ -44,6 +44,17 @@ export const deleteTeacher = async (req: AuthRequest, res: Response) => {
   res.status(200).json(result);
 };
 
+export const activateTeacher = async (req: AuthRequest, res: Response) => {
+  const schoolId = new Types.ObjectId(req.user!.schoolId);
+
+  const result = await TeacherService.activateTeacher(
+    schoolId,
+    req.params.teacherId
+  );
+
+  res.status(200).json(result);
+};
+
 
 
 //this will use to assign class or change class by only principal

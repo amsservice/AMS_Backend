@@ -126,6 +126,21 @@ export class TeacherService {
     return { message: 'Teacher deactivated successfully' };
   }
 
+  static async activateTeacher(schoolId: Types.ObjectId, teacherId: string) {
+    const teacher = await Teacher.findOne({
+      _id: teacherId,
+      schoolId
+    });
+
+    if (!teacher) throw new Error('Teacher not found');
+
+    teacher.isActive = true;
+    teacher.leftAt = undefined;
+    await teacher.save();
+
+    return { message: 'Teacher activated successfully' };
+  }
+
   /* 
      TEACHER: GET OWN PROFILE
   */
