@@ -445,10 +445,7 @@ export class TeacherService {
      TOTAL ACTIVE TEACHERS (SCHOOL WISE)
   ====================================================== */
   static async countActiveTeachers(schoolId: Types.ObjectId) {
-    return Teacher.countDocuments({
-      schoolId,
-      'history.isActive': true
-    });
+    return Teacher.countDocuments({ schoolId, isActive: true });
   }
 
   /* ======================================================
