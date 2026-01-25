@@ -34,7 +34,50 @@ export class TeacherService {
       address?: string;
     }
   ) {
-    return Teacher.create({ ...data, schoolId, history: [] });
+    const email = String(data.email || '').trim().toLowerCase();
+
+    const existing = await Teacher.findOne({ email });
+    if (existing) {
+      const sameSchool = String(existing.schoolId) === String(schoolId);
+
+      if (!sameSchool) {
+        const err: any = new Error('Email already exists');
+        err.code = 11000;
+        throw err;
+      }
+
+      if (existing.isActive === false) {
+        const err: any = new Error('Email already exists with inactive status');
+        err.code = 'TEACHER_INACTIVE_EMAIL_EXISTS';
+        err.teacherId = String(existing._id);
+        err.email = existing.email;
+        throw err;
+      }
+
+      const err: any = new Error('Email already exists');
+      err.code = 11000;
+      throw err;
+    }
+
+    return Teacher.create({ ...data, email, schoolId, history: [] });
+  }
+
+  /*
+     PRINCIPAL: REACTIVATE TEACHER
+  */
+  static async reactivateTeacher(schoolId: Types.ObjectId, teacherId: string) {
+    const teacher = await Teacher.findOne({
+      _id: teacherId,
+      schoolId
+    });
+
+    if (!teacher) throw new Error('Teacher not found');
+
+    teacher.isActive = true;
+    teacher.leftAt = undefined;
+    await teacher.save();
+
+    return { message: 'Teacher activated successfully' };
   }
 
   static async bulkCreateTeachers(
@@ -246,52 +289,6 @@ export class TeacherService {
     };
   }
 
-  /* ======================================================
-     TEACHER LEAVES SCHOOL (SOFT DELETE)
-  ====================================================== */
-  static async deactivateTeacher(
-    schoolId: Types.ObjectId,
-    teacherId: string
-  ) {
-    const teacher = await Teacher.findOne({
-      _id: teacherId,
-      schoolId
-    });
-
-    if (!teacher) throw new Error('Teacher not found');
-
-    /* REMOVE FROM ALL CLASSES */
-    await Class.updateMany(
-      { teacherId: teacher._id },
-      { $unset: { teacherId: 1 } }
-    );
-
-    /* DEACTIVATE ALL HISTORY */
-    teacher.history.forEach(h => (h.isActive = false));
-
-    teacher.isActive = false;
-    teacher.leftAt = new Date();
-
-    await teacher.save();
-
-    return { message: 'Teacher deactivated successfully' };
-  }
-
-  static async activateTeacher(schoolId: Types.ObjectId, teacherId: string) {
-    const teacher = await Teacher.findOne({
-      _id: teacherId,
-      schoolId
-    });
-
-    if (!teacher) throw new Error('Teacher not found');
-
-    teacher.isActive = true;
-    teacher.leftAt = undefined;
-    await teacher.save();
-
-    return { message: 'Teacher activated successfully' };
-  }
-
   /* 
      TEACHER: GET OWN PROFILE
   */
@@ -336,7 +333,7 @@ export class TeacherService {
      PRINCIPAL: LIST TEACHERS
   */
   static async listTeachers(schoolId: Types.ObjectId) {
-    return Teacher.find({ schoolId }).select('-password');
+    return Teacher.find({ schoolId, isActive: true }).select('-password');
   }
 
   /* 
@@ -359,26 +356,36 @@ export class TeacherService {
   }
 
   /* 
-     PRINCIPAL: DELETE TEACHER
-   */
+     PRINCIPAL: DELETE TEACHER (SOFT DEACTIVATE)
+  */
   static async deleteTeacher(
     schoolId: Types.ObjectId,
     teacherId: string
   ) {
-    const teacher = await Teacher.findOneAndDelete({
+    const teacher = await Teacher.findOne({
       _id: teacherId,
       schoolId
     });
 
     if (!teacher) throw new Error('Teacher not found');
 
-    return { message: 'Teacher deleted successfully' };
+    await Class.updateMany(
+      { teacherId: teacher._id },
+      { $unset: { teacherId: 1 } }
+    );
+
+    teacher.history.forEach(h => (h.isActive = false));
+    teacher.isActive = false;
+    teacher.leftAt = new Date();
+
+    await teacher.save();
+
+    return { message: 'Teacher removed successfully' };
   }
 
-
   /* ======================================================
-   TEACHER: CHANGE OWN PASSWORD
-====================================================== */
+     TEACHER: CHANGE OWN PASSWORD
+  ====================================================== */
   static async changeMyPassword(
     teacherId: string,
     oldPassword: string,
@@ -392,17 +399,15 @@ export class TeacherService {
       throw new Error('Old password is incorrect');
     }
 
-    teacher.password = newPassword; // hashed by schema hook
+    teacher.password = newPassword;
     await teacher.save();
 
     return { message: 'Password changed successfully' };
   }
 
-
   /* ======================================================
      PRINCIPAL DASHBOARD
      TOTAL ACTIVE TEACHERS (SCHOOL WISE)
-     NO SESSION
   ====================================================== */
   static async countActiveTeachers(schoolId: Types.ObjectId) {
     return Teacher.countDocuments({

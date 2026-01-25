@@ -5,13 +5,12 @@ import {
   listTeachers,
   updateTeacher,
   deleteTeacher,
+  reactivateTeacher,
   getMyProfile,
   updateMyProfile,
   assignClassToTeacher, 
   changeMyPassword,
   getActiveTeacherCount,
-  deactivateTeacher,
-  activateTeacher,
   swapTeacherClasses,
   getTeacherFullProfileByRole,
   updateTeacherProfileByRole
@@ -53,6 +52,12 @@ router.post(
   createTeacher
 );
 
+router.put(
+  '/:id/reactivate',
+  allowRoles(['principal']),
+  reactivateTeacher
+);
+
 router.post(
   '/bulk-upload',
   allowRoles(['principal']),
@@ -83,12 +88,6 @@ router.post(
   allowRoles(['principal']),
   assignClassToTeacher
 );
-//deactivate teacher
-router.put('/:teacherId/deactivate', allowRoles(['principal']), deactivateTeacher);
-
-//activate teacher
-router.put('/:teacherId/activate', allowRoles(['principal']), activateTeacher);
-
 
 /* ======================================================
    TEACHER: CHANGE OWN PASSWORD

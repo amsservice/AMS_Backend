@@ -12,8 +12,35 @@ import csv from 'csv-parser';
 export const createTeacher = async (req: AuthRequest, res: Response) => {
   const schoolId = new Types.ObjectId(req.user!.schoolId);
 
-  const teacher = await TeacherService.createTeacher(schoolId, req.body);
-  res.status(201).json(teacher);
+  try {
+    const teacher = await TeacherService.createTeacher(schoolId, req.body);
+    return res.status(201).json(teacher);
+  } catch (err: any) {
+    if (err?.code === 'TEACHER_INACTIVE_EMAIL_EXISTS') {
+      return res.status(409).json({
+        code: 'TEACHER_INACTIVE_EMAIL_EXISTS',
+        message: 'This email already exists with inactive status',
+        teacherId: err?.teacherId,
+        email: err?.email
+      });
+    }
+
+    if (err?.code === 11000) {
+      return res.status(400).json({ message: 'Email already exists' });
+    }
+
+    return res.status(400).json({ message: err?.message || 'Failed to create teacher' });
+  }
+};
+
+export const reactivateTeacher = async (req: AuthRequest, res: Response) => {
+  try {
+    const schoolId = new Types.ObjectId(req.user!.schoolId);
+    const result = await TeacherService.reactivateTeacher(schoolId, req.params.id);
+    return res.status(200).json(result);
+  } catch (err: any) {
+    return res.status(400).json({ message: err?.message || 'Failed to activate teacher' });
+  }
 };
 
 export const bulkUploadTeachers = async (req: AuthRequest, res: Response) => {
@@ -163,17 +190,6 @@ export const deleteTeacher = async (req: AuthRequest, res: Response) => {
   res.status(200).json(result);
 };
 
-export const activateTeacher = async (req: AuthRequest, res: Response) => {
-  const schoolId = new Types.ObjectId(req.user!.schoolId);
-
-  const result = await TeacherService.activateTeacher(
-    schoolId,
-    req.params.teacherId
-  );
-
-  res.status(200).json(result);
-};
-
 
 
 //this will use to assign class or change class by only principal
@@ -212,27 +228,6 @@ export const assignClassToTeacher = async (
 /* ======================================================
    PRINCIPAL: DEACTIVATE TEACHER (SOFT DELETE)
 ====================================================== */
-export const deactivateTeacher = async (
-  req: AuthRequest,
-  res: Response
-) => {
-  const schoolId = new Types.ObjectId(req.user!.schoolId);
-
-  const result = await TeacherService.deactivateTeacher(
-    schoolId,
-    req.params.teacherId
-  );
-
-  res.status(200).json(result);
-};
-
-
-
-
-
-
-
-
 /* 
    TEACHER (SELF) teacher can see their profile and update 
  */
