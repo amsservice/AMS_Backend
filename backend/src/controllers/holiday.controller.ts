@@ -82,6 +82,19 @@ export const createHoliday = async (
       return;
     }
 
+    const sessionStart = new Date(activeSession.startDate);
+    sessionStart.setHours(0, 0, 0, 0);
+    const sessionEnd = new Date(activeSession.endDate);
+    sessionEnd.setHours(0, 0, 0, 0);
+
+    const effectiveEnd = end ?? start;
+    if (start.getTime() < sessionStart.getTime() || effectiveEnd.getTime() > sessionEnd.getTime()) {
+      res.status(400).json({
+        message: 'Holiday dates must be within the current academic session'
+      });
+      return;
+    }
+
     // ✅ Create holiday
     const holiday = await HolidayService.createHoliday({
       name: trimmedName,
@@ -163,6 +176,11 @@ export const updateHoliday = async (
       return;
     }
 
+    const sessionStart = new Date(session.startDate);
+    sessionStart.setHours(0, 0, 0, 0);
+    const sessionEnd = new Date(session.endDate);
+    sessionEnd.setHours(0, 0, 0, 0);
+
     const data: any = { ...req.body };
 
     if (typeof data.name === 'string') {
@@ -215,6 +233,14 @@ export const updateHoliday = async (
         }
         data.endDate = end;
       }
+
+      const effectiveEnd = (data.endDate as Date | undefined) ?? start;
+      if (start.getTime() < sessionStart.getTime() || effectiveEnd.getTime() > sessionEnd.getTime()) {
+        res.status(400).json({
+          message: 'Holiday dates must be within the current academic session'
+        });
+        return;
+      }
     } else if (data.endDate) {
       const end = new Date(data.endDate);
       end.setHours(0, 0, 0, 0);
@@ -224,6 +250,13 @@ export const updateHoliday = async (
       }
       if (end.getTime() <= today.getTime()) {
         res.status(400).json({ message: 'Holiday can be marked only on future dates' });
+        return;
+      }
+
+      if (end.getTime() > sessionEnd.getTime()) {
+        res.status(400).json({
+          message: 'Holiday dates must be within the current academic session'
+        });
         return;
       }
       data.endDate = end;
