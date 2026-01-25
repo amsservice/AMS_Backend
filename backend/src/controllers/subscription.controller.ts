@@ -142,6 +142,8 @@ export const getInvoiceHistory = async (
       const totalMonths = plan?.durationMonths ?? 0;
       const monthlyCost = (inv.billableStudents ?? 0) * pricePerStudentPerMonth;
 
+      const couponCode = inv.couponCode === 'FREE_6M' ? undefined : inv.couponCode;
+
       return {
         id: String(inv._id),
         planId: inv.planId,
@@ -158,7 +160,7 @@ export const getInvoiceHistory = async (
         originalAmount: inv.originalAmount,
         discountAmount: inv.discountAmount,
         paidAmount: inv.paidAmount,
-        couponCode: inv.couponCode,
+        couponCode,
 
         startDate: inv.startDate,
         endDate: inv.endDate,
@@ -411,7 +413,9 @@ export const downloadInvoicePdf = async (
     const summaryItems = [
       ['Original Amount', `Rs. ${inv.originalAmount}`],
       ['Discount', `- Rs. ${inv.discountAmount}`],
-      ['Coupon', String(inv.couponCode ?? '-')]
+      ...(inv.couponCode && inv.couponCode !== 'FREE_6M'
+        ? [['Coupon', String(inv.couponCode)]]
+        : [])
     ];
 
     let summaryItemY = summaryY + 15;

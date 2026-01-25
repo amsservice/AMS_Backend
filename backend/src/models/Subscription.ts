@@ -4,7 +4,7 @@ import { Schema, model, Types, Document } from 'mongoose';
 export interface SubscriptionDoc extends Document {
   schoolId: Types.ObjectId;
 
-  planId: '1Y' | '2Y' | '3Y';
+  planId: '6M' | '1Y' | '2Y' | '3Y';
 
   orderId: string;        // ✅ Razorpay order id
   paymentId: string;     // ✅ Razorpay payment id
@@ -45,7 +45,7 @@ const SubscriptionSchema = new Schema<SubscriptionDoc>(
 
     planId: {
       type: String,
-      enum: ['1Y', '2Y', '3Y'],
+      enum: ['6M', '1Y', '2Y', '3Y'],
       required: true
     },
 
