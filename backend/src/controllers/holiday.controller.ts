@@ -272,9 +272,13 @@ export const deleteHoliday = async (
       message: 'Holiday deleted successfully'
     });
   } catch (error: any) {
+    const message = error?.message || 'Failed to delete holiday';
+    if (message === 'Past holidays cannot be deleted') {
+      res.status(400).json({ message });
+      return;
+    }
+
     console.error('DELETE HOLIDAY ERROR:', error);
-    res.status(500).json({
-      message: 'Failed to delete holiday'
-    });
+    res.status(500).json({ message: 'Failed to delete holiday' });
   }
 };
