@@ -125,6 +125,7 @@ export class TeacherService {
         validationErrors.push({ row, message: 'Phone must be exactly 10 digits (numbers only)' });
 
       const dob = t.dob;
+      let ageYears: number | null = null;
       if (!(dob instanceof Date) || Number.isNaN(dob.getTime())) {
         validationErrors.push({ row, message: 'DOB is invalid' });
       } else {
@@ -139,6 +140,7 @@ export class TeacherService {
             (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())
               ? 1
               : 0);
+          ageYears = age;
           if (age < 18) validationErrors.push({ row, message: 'DOB must be at least 18 years ago' });
         }
       }
@@ -163,6 +165,13 @@ export class TeacherService {
         } else {
           if (n < 0) validationErrors.push({ row, message: 'Experience cannot be negative' });
           if (n > 42) validationErrors.push({ row, message: 'Experience cannot be greater than 42 years' });
+
+          if (ageYears !== null) {
+            if (n > ageYears)
+              validationErrors.push({ row, message: 'Experience years cannot be greater than age' });
+            else if (ageYears - n < 14)
+              validationErrors.push({ row, message: 'DOB and experience years difference must be at least 14 years' });
+          }
         }
       }
 
@@ -324,7 +333,6 @@ export class TeacherService {
     if (typeof data.experienceYears === 'number')
       teacher.experienceYears = data.experienceYears;
     if (data.address) teacher.address = data.address;
-    if (data.password) teacher.password = data.password; // hashed by schema
 
     return teacher.save();
   }
@@ -350,6 +358,33 @@ export class TeacherService {
     }).select('+password');
 
     if (!teacher) throw new Error('Teacher not found');
+
+    const calcAgeYears = (dob: Date) => {
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        age -= 1;
+      }
+      return age;
+    };
+
+    const finalDob: Date | undefined =
+      data?.dob !== undefined ? new Date(data.dob) : (teacher as any).dob;
+    const finalExp: number | undefined =
+      data?.experienceYears !== undefined
+        ? Number(data.experienceYears)
+        : (teacher as any).experienceYears;
+
+    if (finalDob instanceof Date && !isNaN(finalDob.getTime()) && finalExp !== undefined) {
+      const age = calcAgeYears(finalDob);
+      if (finalExp > age) {
+        throw new Error('Experience years cannot be greater than age');
+      }
+      if (age - finalExp < 14) {
+        throw new Error('DOB and experience years difference must be at least 14 years');
+      }
+    }
 
     Object.assign(teacher, data);
     return teacher.save();

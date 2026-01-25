@@ -1,5 +1,15 @@
 import { z } from 'zod';
 
+const calcAgeYears = (dob: Date) => {
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+    age -= 1;
+  }
+  return age;
+};
+
 // Login (Principal / Teacher / Student)
 export const loginSchema = z.object({
   email: z.email(),
@@ -272,7 +282,8 @@ export const createClassSchema = z.object({
  */
 
 //  Create Teacher (Principal)
-export const createTeacherSchema = z.object({
+export const createTeacherSchema = z
+  .object({
   name: z
     .string()
     .min(1, 'Name is required')
@@ -325,10 +336,29 @@ export const createTeacherSchema = z.object({
       { message: 'Address must contain at least 5 letters' }
     )
     .optional()
-});
+})
+  .superRefine((data, ctx) => {
+    if (typeof data.experienceYears === 'number') {
+      const age = calcAgeYears(data.dob);
+      if (data.experienceYears > age) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['experienceYears'],
+          message: 'Experience years cannot be greater than age'
+        });
+      } else if (age - data.experienceYears < 14) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['experienceYears'],
+          message: 'DOB and experience years difference must be at least 14 years'
+        });
+      }
+    }
+  });
 
 //  Update Teacher by Principal
-export const updateTeacherSchema = z.object({
+export const updateTeacherSchema = z
+  .object({
   name: z
     .string()
     .min(1)
@@ -384,7 +414,25 @@ export const updateTeacherSchema = z.object({
       { message: 'Address must contain at least 5 letters' }
     )
     .optional()
-});
+})
+  .superRefine((data, ctx) => {
+    if (data.dob instanceof Date && typeof data.experienceYears === 'number') {
+      const age = calcAgeYears(data.dob);
+      if (data.experienceYears > age) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['experienceYears'],
+          message: 'Experience years cannot be greater than age'
+        });
+      } else if (age - data.experienceYears < 14) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['experienceYears'],
+          message: 'DOB and experience years difference must be at least 14 years'
+        });
+      }
+    }
+  });
 
 //  Assign Class to Teacher (Principal)
 export const assignClassToTeacherSchema = z.object({
