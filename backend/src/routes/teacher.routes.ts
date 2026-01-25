@@ -1,16 +1,16 @@
 import { Router } from 'express';
 import {
   createTeacher,
+  bulkUploadTeachers,
   listTeachers,
   updateTeacher,
   deleteTeacher,
+  reactivateTeacher,
   getMyProfile,
   updateMyProfile,
   assignClassToTeacher, 
   changeMyPassword,
   getActiveTeacherCount,
-  deactivateTeacher,
-  activateTeacher,
   swapTeacherClasses,
   getTeacherFullProfileByRole,
   updateTeacherProfileByRole
@@ -19,6 +19,7 @@ import {
 import { authMiddleware } from '../middleware/auth.middleware';
 import { allowRoles } from '../middleware/role.middleware';
 import { validate } from '../middleware/validate.middleware';
+import { uploadCSV } from '../middleware/upload.middleware';
 import {
   createTeacherSchema,
   updateTeacherSchema,
@@ -51,6 +52,19 @@ router.post(
   createTeacher
 );
 
+router.put(
+  '/:id/reactivate',
+  allowRoles(['principal']),
+  reactivateTeacher
+);
+
+router.post(
+  '/bulk-upload',
+  allowRoles(['principal']),
+  uploadCSV.single('csvFile'),
+  bulkUploadTeachers
+);
+
 router.get('/', allowRoles(['principal']), listTeachers);
 
 router.put(
@@ -74,12 +88,6 @@ router.post(
   allowRoles(['principal']),
   assignClassToTeacher
 );
-//deactivate teacher
-router.put('/:teacherId/deactivate', allowRoles(['principal']), deactivateTeacher);
-
-//activate teacher
-router.put('/:teacherId/activate', allowRoles(['principal']), activateTeacher);
-
 
 /* ======================================================
    TEACHER: CHANGE OWN PASSWORD

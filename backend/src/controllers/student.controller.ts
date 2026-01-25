@@ -106,6 +106,43 @@ export const getStudentsByClass = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const deleteStudent = async (req: AuthRequest, res: Response) => {
+  const role = req.user!.role;
+  if (role !== 'principal') {
+    return res.status(403).json({ message: 'Only principal can delete student' });
+  }
+
+  const studentId = req.params.id;
+  if (!studentId) {
+    return res.status(400).json({ message: 'Student id is required' });
+  }
+
+  try {
+    const result = await StudentService.deactivateStudent(req.user!.schoolId!, studentId);
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(400).json({ message: err.message });
+  }
+};
+
+export const deactivateStudent = async (req: AuthRequest, res: Response) => {
+  const role = req.user!.role;
+  if (role !== 'principal') {
+    return res.status(403).json({ message: 'Only principal can deactivate student' });
+  }
+
+  const studentId = req.params.id;
+  if (!studentId) {
+    return res.status(400).json({ message: 'Student id is required' });
+  }
+
+  try {
+    const result = await StudentService.deactivateStudent(req.user!.schoolId!, studentId);
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(400).json({ message: err.message });
+  }
+};
 
 export const bulkUploadStudentsSchoolWide = async (
   req: AuthRequest,

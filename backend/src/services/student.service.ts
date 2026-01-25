@@ -314,6 +314,42 @@ export class StudentService {
       .sort({ 'history.rollNo': 1 });
   }
 
+  static async deactivateStudent(schoolId: string, studentId: string) {
+    const schoolObjectId = new Types.ObjectId(schoolId);
+
+    const activeSession = await Session.findOne({
+      schoolId: schoolObjectId,
+      isActive: true
+    });
+
+    if (!activeSession) {
+      throw new Error('No active session found');
+    }
+
+    const updated = await Student.findOneAndUpdate(
+      {
+        _id: studentId,
+        schoolId: schoolObjectId
+      },
+      {
+        $set: {
+          status: 'inactive',
+          'history.$[h].isActive': false
+        }
+      },
+      {
+        new: true,
+        arrayFilters: [{ 'h.sessionId': activeSession._id, 'h.isActive': true }]
+      }
+    ).select('-password');
+
+    if (!updated) {
+      throw new Error('Student not found');
+    }
+
+    return { message: 'Student deactivated successfully' };
+  }
+
   /* =====================================================
     BULK CREATE STUDENTS (TEACHER / PRINCIPAL)
  ===================================================== */
