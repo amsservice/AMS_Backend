@@ -86,10 +86,27 @@ export class HolidayService {
     );
   }
 
-  static deleteHoliday(
+  static async deleteHoliday(
     id: Types.ObjectId,
     schoolId: Types.ObjectId
   ): Promise<IHoliday | null> {
+    const existing = await Holiday.findOne({ _id: id, schoolId });
+    if (!existing) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const start = new Date(existing.startDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = existing.endDate ? new Date(existing.endDate) : new Date(existing.startDate);
+    end.setHours(0, 0, 0, 0);
+
+    const isPastHoliday = end.getTime() < today.getTime();
+    if (isPastHoliday) {
+      throw new Error('Past holidays cannot be deleted');
+    }
+
     return Holiday.findOneAndDelete({ _id: id, schoolId });
   }
 }
