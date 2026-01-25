@@ -694,8 +694,8 @@ export class StudentService {
       parentsPhone: string;
       rollNo: number;
       classId: string;
-      className: string;
-      section: string;
+      className?: string;
+      section?: string;
     }
   ) {
     const schoolObjectId = new Types.ObjectId(schoolId);
@@ -710,13 +710,30 @@ export class StudentService {
       throw new Error('No active session found');
     }
 
+    const classDoc = await Class.findOne({
+      _id: classObjectId,
+      schoolId: schoolObjectId,
+      sessionId: activeSession._id
+    }).lean();
+
+    if (!classDoc) {
+      throw new Error('Class not found');
+    }
+
+    const resolvedClassName = (data.className ?? classDoc.name ?? '').toString().trim();
+    const resolvedSection = (data.section ?? classDoc.section ?? '').toString().trim();
+
+    if (!resolvedClassName || !resolvedSection) {
+      throw new Error('className and section are required');
+    }
+
     const student = await Student.create({
       name: data.name.trim(),
       email:
         data.email && data.email.trim() !== ''
           ? data.email.trim().toLowerCase()
           : undefined,
-      password: data.password, // 🔥 schema will hash
+      password: data.password, // schema will hash
       admissionNo: data.admissionNo.trim(),
       fatherName: data.fatherName.trim(),
       motherName: data.motherName.trim(),
@@ -726,8 +743,8 @@ export class StudentService {
         {
           sessionId: activeSession._id,
           classId: classObjectId,
-          className: data.className,
-          section: data.section,
+          className: resolvedClassName,
+          section: resolvedSection,
           rollNo: data.rollNo,
           isActive: true
         }

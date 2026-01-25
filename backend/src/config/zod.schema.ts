@@ -524,6 +524,10 @@ export const createStudentSchema = z.object({
   parentsPhone: z.string().min(10).max(13),
 
   rollNo: z.number().int().positive()
+  ,
+  classId: z.string().min(1).optional(),
+  className: z.string().min(1).optional(),
+  section: z.string().min(1).optional()
 });
 
 /* ======================================================
