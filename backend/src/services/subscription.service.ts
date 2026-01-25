@@ -125,6 +125,36 @@ export class SubscriptionService {
     futureStudents?: number;
     couponCode?: CouponCode;
   }) {
+    if (planId === '6M' && couponCode === 'FREE_6M') {
+      const plan = PLANS[planId];
+      if (!plan) throw new Error('Invalid plan');
+
+      if (enteredStudents <= 0) {
+        throw new Error('Entered students must be greater than 0');
+      }
+
+      if (futureStudents < 0) {
+        throw new Error('Future students cannot be negative');
+      }
+
+      const billableStudents = enteredStudents + futureStudents;
+      const paidAmount = 1;
+
+      return {
+        planId,
+        enteredStudents,
+        futureStudents,
+        billableStudents,
+        pricePerStudentPerMonth: plan.pricePerStudentPerMonth,
+        totalMonths: plan.durationMonths,
+        monthlyCost: 0,
+        originalAmount: paidAmount,
+        discountMonths: 0,
+        discountAmount: 0,
+        paidAmount
+      };
+    }
+
     const base = this.calculatePrice({
       planId,
       enteredStudents,

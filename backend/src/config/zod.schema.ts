@@ -568,7 +568,7 @@ export const changePasswordSchema = z.object({
    ENUMS
 ====================================================== */
 
-export const planEnum = z.enum(['1Y', '2Y', '3Y']);
+export const planEnum = z.enum(['6M', '1Y', '2Y', '3Y']);
 
 export const couponEnum = z.enum(['FREE_3M', 'FREE_6M']);
 

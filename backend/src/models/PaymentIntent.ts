@@ -8,7 +8,7 @@ export interface PaymentIntentDoc extends Document {
   schoolId?: Types.ObjectId;
   intentMode: 'register' | 'upgrade';
 
-  planId: '1Y' | '2Y' | '3Y';
+  planId: '6M' | '1Y' | '2Y' | '3Y';
   enteredStudents: number;
   futureStudents?: number;
   couponCode?: 'FREE_3M' | 'FREE_6M';
@@ -33,7 +33,7 @@ const PaymentIntentSchema = new Schema<PaymentIntentDoc>(
       default: 'register'
     },
 
-    planId: { type: String, enum: ['1Y', '2Y', '3Y'], required: true },
+    planId: { type: String, enum: ['6M', '1Y', '2Y', '3Y'], required: true },
     enteredStudents: { type: Number, required: true },
     futureStudents: Number,
     couponCode: { type: String, enum: ['FREE_3M', 'FREE_6M'] },
