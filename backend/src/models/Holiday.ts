@@ -109,7 +109,16 @@ const holidaySchema = new Schema<IHoliday>(
       validate: {
         validator: function (this: IHoliday, value: Date) {
           if (!value) return true;
-          return value >= this.startDate;
+          const ctx: any = this as any;
+          const directStart: Date | undefined = ctx.startDate;
+          const updateObj: any = typeof ctx.getUpdate === 'function' ? ctx.getUpdate() : undefined;
+          const updateStart: Date | undefined =
+            updateObj?.startDate ??
+            updateObj?.$set?.startDate;
+
+          const start = directStart ?? updateStart;
+          if (!start) return true;
+          return value >= start;
         },
         message: 'End date must be greater than or equal to start date'
       }

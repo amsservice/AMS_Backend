@@ -77,12 +77,12 @@ export class HolidayService {
       data.endDate === null ? undefined : data.endDate;
 
     return Holiday.findOneAndUpdate(
-      { _id: id, schoolId },
+      { _id: id, schoolId, sessionId },
       {
         ...data,
         endDate: normalizedEndDate
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true, context: 'query' }
     );
   }
 
