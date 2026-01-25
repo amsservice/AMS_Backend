@@ -11,7 +11,8 @@ import {
   loginStudent,
   resendSchoolOtp,
   getSchoolPaymentStatus,
-  refreshToken
+  refreshToken,
+  getMe
 } from '../controllers/auth.controller';
 
 import { validate } from '../middleware/validate.middleware';
@@ -27,6 +28,13 @@ import { authMiddleware } from '../middleware/auth.middleware';
 import { allowRoles } from '../middleware/role.middleware';
 
 const router = Router();
+
+router.get(
+  '/me',
+  authMiddleware,
+  getMe
+);
+
 
 router.post(
   '/refresh-token',

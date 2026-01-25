@@ -37,15 +37,15 @@ export const createSession = async (req: AuthRequest, res: Response) => {
 ===================================================== */
 export const getSessions = async (req: AuthRequest, res: Response) => {
   try {
-    const { role, schoolId, userId } = req.user!;
+    const { roles, schoolId, userId } = req.user!;
 
     let sessions;
 
-    if (role === 'principal') {
+    if (roles.includes('principal')) {
       sessions = await SessionService.getSessions(
         new Types.ObjectId(schoolId)
       );
-    } else if (role === 'teacher') {
+    } else if (roles.includes('teacher')) {
       sessions = await SessionService.getSessionsForTeacher(userId);
     } else {
       sessions = await SessionService.getSessionsForStudent(userId);

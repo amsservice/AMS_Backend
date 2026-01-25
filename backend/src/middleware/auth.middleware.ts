@@ -15,7 +15,7 @@ export interface AuthRequest extends Request {
   };
   user?: {
     userId: string;
-    role: UserRole;
+    roles: UserRole[];
     schoolId: string;
   };
 }
@@ -34,7 +34,6 @@ export const authMiddleware = async (
       req.user = decoded;
       return next();
     } catch (error: any) {
-      // Continue to refresh logic only if the error is an expiry
       if (error.message !== 'Access token expired') {
         return res.status(401).json({ message: 'Invalid session' });
       }
@@ -50,20 +49,20 @@ export const authMiddleware = async (
     // 3. Verify Refresh Token
     const payload = verifyRefreshToken(refreshToken);
 
-    // 4. GENERATE NEW PAIR (Rotation)
+    // 4. Generate new tokens using roles array
     const newAccess = signAccessToken({
       userId: payload.userId,
-      role: payload.role,
+      roles: payload.roles,
       schoolId: payload.schoolId
     });
 
     const newRefresh = signRefreshToken({
       userId: payload.userId,
-      role: payload.role,
+      roles: payload.roles,
       schoolId: payload.schoolId
     });
 
-    // 5. SET NEW COOKIES (Silent Refresh)
+    // 5. Set cookies
     setAuthCookies(res, newAccess, newRefresh);
 
     req.user = payload;

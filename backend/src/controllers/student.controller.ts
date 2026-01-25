@@ -1,19 +1,19 @@
-import { Response } from 'express';
-import { Types } from 'mongoose';
-import { StudentService } from '../services/student.service';
-import { AuthRequest } from '../middleware/auth.middleware';
-import { Session } from '../models/Session';
-import { Subscription } from '../models/Subscription';
-import { Student } from '../models/Student';
-import fs from 'fs';
-import csv from 'csv-parser';
+import { Response } from "express";
+import { Types } from "mongoose";
+import { StudentService } from "../services/student.service";
+import { AuthRequest } from "../middleware/auth.middleware";
+import { Session } from "../models/Session";
+import { Subscription } from "../models/Subscription";
+import { Student } from "../models/Student";
+import fs from "fs";
+import csv from "csv-parser";
 
 const buildDuplicateKeyMessage = (err: any) => {
   const keyPattern = err?.keyPattern ?? {};
   const keyValue = err?.keyValue ?? {};
   const keys = Object.keys(keyPattern);
 
-  const raw = String(err?.errmsg || err?.message || err || '');
+  const raw = String(err?.errmsg || err?.message || err || "");
 
   // Try to extract from raw E11000 message when keyPattern/keyValue are missing
   // Examples:
@@ -29,37 +29,37 @@ const buildDuplicateKeyMessage = (err: any) => {
       rawField = pairMatch[1];
       rawValue = pairMatch[2]
         ?.trim()
-        .replace(/^"|"$/g, '')
-        .replace(/^'|'$/g, '');
+        .replace(/^"|"$/g, "")
+        .replace(/^'|'$/g, "");
     }
   }
 
   // Prefer the actual "business" unique fields when compound indexes exist
-  if (keys.includes('admissionNo') || rawField === 'admissionNo') {
+  if (keys.includes("admissionNo") || rawField === "admissionNo") {
     const value = keyValue.admissionNo ?? rawValue;
-    return `Admission number already exists${value !== undefined ? `: ${value}` : ''}`;
+    return `Admission number already exists${value !== undefined ? `: ${value}` : ""}`;
   }
 
-  if (keys.includes('email') || rawField === 'email') {
+  if (keys.includes("email") || rawField === "email") {
     const value = keyValue.email ?? rawValue;
-    if (value === null || value === undefined || value === '') {
-      return 'Email already exists';
+    if (value === null || value === undefined || value === "") {
+      return "Email already exists";
     }
     return `Email already exists: ${value}`;
   }
 
   if (rawField) {
-    return `Duplicate value not allowed for ${rawField}${rawValue !== undefined ? `: ${rawValue}` : ''}`;
+    return `Duplicate value not allowed for ${rawField}${rawValue !== undefined ? `: ${rawValue}` : ""}`;
   }
 
   if (keys.length) {
     const details = keys
-      .map(k => (keyValue[k] !== undefined ? `${k}: ${keyValue[k]}` : k))
-      .join(', ');
+      .map((k) => (keyValue[k] !== undefined ? `${k}: ${keyValue[k]}` : k))
+      .join(", ");
     return `Duplicate value not allowed for ${details}`;
   }
 
-  return 'Duplicate value not allowed';
+  return "Duplicate value not allowed";
 };
 
 /* 
@@ -71,7 +71,7 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
   try {
     const result = await StudentService.createStudentByTeacher(
       teacherId,
-      req.body
+      req.body,
     );
 
     return res.status(201).json(result);
@@ -83,22 +83,25 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
   }
 };
 
-
 export const getStudentsByClass = async (req: AuthRequest, res: Response) => {
-  const role = req.user!.role;
-  if (role !== 'principal') {
-    return res.status(403).json({ message: 'Only principal can access students list' });
+  const roles = req.user!.roles;
+  if (!roles.includes("principal") && !roles.includes("coordinator")) {
+    return res
+      .status(403)
+      .json({
+        message: "Only principal and coordinator can access students list",
+      });
   }
 
   const { classId } = req.params;
   if (!classId) {
-    return res.status(400).json({ message: 'classId is required' });
+    return res.status(400).json({ message: "classId is required" });
   }
 
   try {
     const students = await StudentService.getStudentsByClass(
       req.user!.schoolId!,
-      classId
+      classId,
     );
     return res.json(students);
   } catch (err: any) {
@@ -106,19 +109,23 @@ export const getStudentsByClass = async (req: AuthRequest, res: Response) => {
   }
 };
 
-
 export const bulkUploadStudentsSchoolWide = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   const file = req.file;
   if (!file) {
-    return res.status(400).json({ message: 'CSV file required' });
+    return res.status(400).json({ message: "CSV file required" });
   }
 
-  const role = req.user!.role;
-  if (role !== 'principal') {
-    return res.status(403).json({ message: 'Only principal can upload whole-school students' });
+  const roles = req.user!.roles;
+  if (!roles.includes("principal") && !roles.includes("coordinator")) {
+    return res
+      .status(403)
+      .json({
+        message:
+          "Only principal and coordinator can upload whole-school students",
+      });
   }
 
   const students: any[] = [];
@@ -129,7 +136,7 @@ export const bulkUploadStudentsSchoolWide = async (
     await new Promise<void>((resolve, reject) => {
       fs.createReadStream(file.path)
         .pipe(csv())
-        .on('data', row => {
+        .on("data", (row) => {
           rowIndex++;
 
           const name = row.name?.trim();
@@ -144,7 +151,7 @@ export const bulkUploadStudentsSchoolWide = async (
           if (!name || !admissionNo || !password || Number.isNaN(rollNo)) {
             invalidRows.push({
               row: rowIndex,
-              reason: 'Missing required fields'
+              reason: "Missing required fields",
             });
             return;
           }
@@ -152,7 +159,7 @@ export const bulkUploadStudentsSchoolWide = async (
           if (!classId && (!className || !section)) {
             invalidRows.push({
               row: rowIndex,
-              reason: 'Missing classId or (className and section)'
+              reason: "Missing classId or (className and section)",
             });
             return;
           }
@@ -162,68 +169,68 @@ export const bulkUploadStudentsSchoolWide = async (
             email: row.email?.trim() || undefined,
             password,
             admissionNo,
-            fatherName: row.fatherName?.trim() || '',
-            motherName: row.motherName?.trim() || '',
-            parentsPhone: row.parentsPhone?.trim() || '',
+            fatherName: row.fatherName?.trim() || "",
+            motherName: row.motherName?.trim() || "",
+            parentsPhone: row.parentsPhone?.trim() || "",
             rollNo,
             classId: classId || undefined,
             className: className || undefined,
-            section: section || undefined
+            section: section || undefined,
           });
         })
-        .on('end', resolve)
-        .on('error', reject);
+        .on("end", resolve)
+        .on("error", reject);
     });
 
     if (!students.length) {
       return res.status(400).json({
-        message: 'No valid students found in CSV',
-        invalidRows
+        message: "No valid students found in CSV",
+        invalidRows,
       });
     }
 
     const subscription = await Subscription.findOne({
       schoolId: req.user!.schoolId,
-      status: { $in: ['active', 'grace'] }
-    }).select('billableStudents');
+      status: { $in: ["active", "grace"] },
+    }).select("billableStudents");
 
     if (!subscription) {
       return res.status(403).json({
-        message: 'No active subscription'
+        message: "No active subscription",
       });
     }
 
     const currentCount = await Student.countDocuments({
       schoolId: req.user!.schoolId,
-      status: 'active'
+      status: "active",
     });
 
     if (currentCount + students.length > subscription.billableStudents) {
       return res.status(403).json({
-        message: `Student limit reached. You can add only ${Math.max(0, subscription.billableStudents - currentCount)} more students.`
+        message: `Student limit reached. You can add only ${Math.max(0, subscription.billableStudents - currentCount)} more students.`,
       });
     }
 
     const result = await StudentService.bulkCreateStudentsSchoolWide(
       {
-        schoolId: new Types.ObjectId(req.user!.schoolId)
+        schoolId: new Types.ObjectId(req.user!.schoolId),
       },
-      students
+      students,
     );
 
     if (!result?.success) {
       return res.status(400).json({
-        message: 'CSV validation failed',
+        message: "CSV validation failed",
         ...(result as any),
         invalidRowsCount: invalidRows.length,
-        invalidRows
+        invalidRows,
       });
     }
 
     return res.status(201).json({
       ...result,
       invalidRowsCount: invalidRows.length,
-      invalidRows
+      invalidRows,
     });
   } catch (err: any) {
     if (err?.code === 11000) {
@@ -235,13 +242,12 @@ export const bulkUploadStudentsSchoolWide = async (
   }
 };
 
-
 /* 
    TEACHER: UPDATE STUDENT PROFILE
 */
 export const updateStudentByTeacher = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   const teacherId = req.user!.userId;
   const studentId = req.params.id;
@@ -249,7 +255,7 @@ export const updateStudentByTeacher = async (
   const result = await StudentService.updateStudentByTeacher(
     teacherId,
     studentId,
-    req.body
+    req.body,
   );
 
   res.status(200).json(result);
@@ -258,42 +264,36 @@ export const updateStudentByTeacher = async (
 /* 
    STUDENT: CHANGE OWN PASSWORD
  */
-export const changeMyPassword = async (
-  req: AuthRequest,
-  res: Response
-) => {
+export const changeMyPassword = async (req: AuthRequest, res: Response) => {
   const studentId = req.user!.userId;
   const { oldPassword, newPassword } = req.body;
 
   const result = await StudentService.changeMyPassword(
     studentId,
     oldPassword,
-    newPassword
+    newPassword,
   );
 
   res.status(200).json(result);
 };
 
-
 export const getMyProfile = async (req: AuthRequest, res: Response) => {
-  ;
-
   const student = await StudentService.getMyProfile(req.user!.userId);
-  
-    if (!student) {
-      return res.status(404).json({
-        message: "student not found"
-      });
-    }
-  
-    res.status(200).json({
-      user: {
-        id: student._id.toString(),
-        name: student.name,
-        email: student.email,
-        role: "student"
-      }
+
+  if (!student) {
+    return res.status(404).json({
+      message: "student not found",
     });
+  }
+
+  res.status(200).json({
+    user: {
+      id: student._id.toString(),
+      name: student.name,
+      email: student.email,
+      role: "student",
+    },
+  });
 };
 
 /* =====================================================
@@ -301,11 +301,11 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
 ===================================================== */
 export const getTotalStudentsClassWise = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   const activeSession = await Session.findOne({
     schoolId: req.user!.schoolId,
-    isActive: true
+    isActive: true,
   });
 
   if (!activeSession) {
@@ -315,7 +315,7 @@ export const getTotalStudentsClassWise = async (
 
   const result = await StudentService.getTotalStudentsClassWise(
     req.user!.schoolId as any,
-    activeSession._id
+    activeSession._id,
   );
 
   res.json(result);
@@ -324,10 +324,7 @@ export const getTotalStudentsClassWise = async (
 /* =====================================================
    TEACHER: MY STUDENTS list of students class wise
 ===================================================== */
-export const getMyStudents = async (
-  req: AuthRequest,
-  res: Response
-) => {
+export const getMyStudents = async (req: AuthRequest, res: Response) => {
   const teacherId = req.user!.userId;
 
   const students = await StudentService.getMyStudents(teacherId);
@@ -335,15 +332,20 @@ export const getMyStudents = async (
   res.json(students);
 };
 
-
 export const getSchoolStudents = async (req: AuthRequest, res: Response) => {
-  const role = req.user!.role;
-  if (role !== 'principal') {
-    return res.status(403).json({ message: 'Only principal can access students list' });
+  const roles = req.user!.roles;
+  if (!roles.includes("principal") && !roles.includes("coordinator")) {
+    return res
+      .status(403)
+      .json({
+        message: "Only principal and coordinator can access students list",
+      });
   }
 
   try {
-    const students = await StudentService.getSchoolStudents(req.user!.schoolId!);
+    const students = await StudentService.getSchoolStudents(
+      req.user!.schoolId!,
+    );
     return res.json(students);
   } catch (err: any) {
     return res.status(400).json({ message: err.message });
@@ -352,29 +354,30 @@ export const getSchoolStudents = async (req: AuthRequest, res: Response) => {
 
 //bulk upload students
 // bulk upload students (teacher + principal)
-export const bulkUploadStudents = async (
-  req: AuthRequest,
-  res: Response
-) => {
+export const bulkUploadStudents = async (req: AuthRequest, res: Response) => {
   const file = req.file;
   if (!file) {
-    return res.status(400).json({ message: 'CSV file required' });
+    return res.status(400).json({ message: "CSV file required" });
   }
 
-  const role = req.user!.role;
+  const role = req.user!.roles;
 
-  if (role !== 'teacher' && role !== 'principal') {
+  if (
+    !role.includes("teacher") &&
+    !role.includes("coordinator") &&
+    !role.includes("principal")
+  ) {
     return res.status(403).json({
-      message: 'Only teacher or principal can upload students'
+      message: "Only teacher, coordinator or principal can upload students",
     });
   }
 
   if (
-    role === 'principal' &&
+    role.includes("principal") &&
     (!req.body.classId || !req.body.className || !req.body.section)
   ) {
     return res.status(400).json({
-      message: 'classId, className and section are required for principal'
+      message: "classId, className and section are required for principal",
     });
   }
 
@@ -386,7 +389,7 @@ export const bulkUploadStudents = async (
     await new Promise<void>((resolve, reject) => {
       fs.createReadStream(file.path)
         .pipe(csv())
-        .on('data', row => {
+        .on("data", (row) => {
           rowIndex++;
 
           const name = row.name?.trim();
@@ -397,7 +400,7 @@ export const bulkUploadStudents = async (
           if (!name || !admissionNo || !password || Number.isNaN(rollNo)) {
             invalidRows.push({
               row: rowIndex,
-              reason: 'Missing required fields'
+              reason: "Missing required fields",
             });
             return;
           }
@@ -407,63 +410,63 @@ export const bulkUploadStudents = async (
             email: row.email?.trim() || undefined,
             password,
             admissionNo,
-            fatherName: row.fatherName?.trim() || '',
-            motherName: row.motherName?.trim() || '',
-            parentsPhone: row.parentsPhone?.trim() || '',
-            rollNo
+            fatherName: row.fatherName?.trim() || "",
+            motherName: row.motherName?.trim() || "",
+            parentsPhone: row.parentsPhone?.trim() || "",
+            rollNo,
           });
         })
-        .on('end', resolve)
-        .on('error', reject);
+        .on("end", resolve)
+        .on("error", reject);
     });
 
     if (!students.length) {
       return res.status(400).json({
-        message: 'No valid students found in CSV',
-        invalidRows
+        message: "No valid students found in CSV",
+        invalidRows,
       });
     }
 
     const subscription = await Subscription.findOne({
       schoolId: req.user!.schoolId,
-      status: { $in: ['active', 'grace'] }
-    }).select('billableStudents');
+      status: { $in: ["active", "grace"] },
+    }).select("billableStudents");
 
     if (!subscription) {
       return res.status(403).json({
-        message: 'No active subscription'
+        message: "No active subscription",
       });
     }
 
     const currentCount = await Student.countDocuments({
       schoolId: req.user!.schoolId,
-      status: 'active'
+      status: "active",
     });
 
     if (currentCount + students.length > subscription.billableStudents) {
       return res.status(403).json({
-        message: `Student limit reached. You can add only ${Math.max(0, subscription.billableStudents - currentCount)} more students.`
+        message: `Student limit reached. You can add only ${Math.max(0, subscription.billableStudents - currentCount)} more students.`,
       });
     }
 
     const result = await StudentService.bulkCreateStudents(
       {
-        role,
+        roles: req.user!.roles,
         userId: req.user!.userId,
         schoolId: new Types.ObjectId(req.user!.schoolId),
         classId: req.body.classId
           ? new Types.ObjectId(req.body.classId)
           : undefined,
         className: req.body.className,
-        section: req.body.section
+        section: req.body.section,
       },
-      students
+      students,
     );
 
     return res.status(201).json({
       ...result,
       invalidRowsCount: invalidRows.length,
-      invalidRows
+      invalidRows,
     });
   } catch (err: any) {
     if (err?.code === 11000) {
@@ -475,16 +478,20 @@ export const bulkUploadStudents = async (
   }
 };
 
-
 // add student by principal
 export const createStudentByPrincipal = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
+  const roles = req.user!.roles;
+  if (!roles.includes("principal") && !roles.includes("coordinator")) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
   try {
     const result = await StudentService.createStudentByPrincipal(
       req.user!.schoolId!,
-      req.body
+      req.body,
     );
 
     res.status(201).json(result);
@@ -496,43 +503,33 @@ export const createStudentByPrincipal = async (
   }
 };
 
-
 /* =====================================================
    GET FULL STUDENT DETAILS
    principal | teacher | student
 ===================================================== */
-export const getStudentById = async (
-  req: AuthRequest,
-  res: Response
-) => {
+export const getStudentById = async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { role, userId, schoolId } = req.user!;
+  const { roles, userId, schoolId } = req.user!;
 
   if (!Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: 'Invalid student id' });
+    return res.status(400).json({ message: "Invalid student id" });
   }
 
   try {
     let student;
 
-    if (role === 'principal') {
-      student = await StudentService.getStudentForPrincipal(
-        schoolId!,
-        id
-      );
+    if (roles.includes('principal') || roles.includes('coordinator')) {
+      student = await StudentService.getStudentForPrincipal(schoolId!, id);
     }
 
-    if (role === 'teacher') {
-      student = await StudentService.getStudentForTeacher(
-        userId,
-        id
-      );
+    if (roles.includes('teacher')) {
+      student = await StudentService.getStudentForTeacher(userId, id);
     }
 
-    if (role === 'student') {
+    if (roles.includes("student")) {
       if (userId !== id) {
         return res.status(403).json({
-          message: 'Students can only access their own profile'
+          message: "Students can only access their own profile",
         });
       }
       student = await StudentService.getStudentForStudent(id);
@@ -540,7 +537,7 @@ export const getStudentById = async (
 
     if (!student) {
       return res.status(404).json({
-        message: 'Student not found or access denied'
+        message: "Student not found or access denied",
       });
     }
 

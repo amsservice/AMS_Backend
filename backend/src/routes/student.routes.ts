@@ -13,7 +13,7 @@ import { createStudentSchema,updateStudentSchema,changePasswordSchema } from '..
 const router = Router();
 
 const createStudentHandler = (req: AuthRequest, res: Response) => {
-  if (req.user!.role === 'teacher') {
+  if (req.user!.roles.includes('teacher')) {
     return createStudent(req, res);
   }
   return createStudentByPrincipal(req, res);

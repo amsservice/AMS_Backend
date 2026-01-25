@@ -1,7 +1,7 @@
 
 import { Types } from 'mongoose';
 import { Session } from '../models/Session';
-import { Teacher } from '../models/Teacher';
+import { Staff } from '../models/Staff';
 import { Student } from '../models/Student';
 import { Class } from '../models/Class';
 import { Holiday } from '../models/Holiday';
@@ -13,7 +13,7 @@ export class SessionService {
   ) {
     const hasClasses = await Class.exists({ schoolId, sessionId });
     const hasHolidays = await Holiday.exists({ schoolId, sessionId });
-    const hasTeacherHistory = await Teacher.exists({
+    const hasTeacherHistory = await Staff.exists({
       schoolId,
       'history.sessionId': sessionId
     });
@@ -132,13 +132,13 @@ export class SessionService {
       );
       
   /// 1️⃣ Deactivate ALL teacher histories (global reset)
-await Teacher.updateMany(
+await Staff.updateMany(
   { schoolId },
   { $set: { 'history.$[].isActive': false } }
 );
 
    // 3️⃣ Restore teacher history for THIS session 🔥 FIX
-    await Teacher.updateMany(
+    await Staff.updateMany(
       {
         schoolId,
         'history.sessionId': sessionId
@@ -166,7 +166,7 @@ await Teacher.updateMany(
      TEACHER SESSIONS (READ ONLY)
   ========================= */
   static async getSessionsForTeacher(teacherId: string) {
-    const teacher = await Teacher.findById(teacherId);
+    const teacher = await Staff.findById(teacherId);
     if (!teacher) throw new Error('Teacher not found');
 
     const sessionIds = teacher.history.map(h => h.sessionId);

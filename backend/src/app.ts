@@ -10,7 +10,7 @@ import authRoutes from "./routes/auth.routes";
 import schoolRoutes from "./routes/school.routes";
 import sessionRoutes from "./routes/session.routes";
 import classRoutes from "./routes/class.routes";
-import teacherRoutes from "./routes/teacher.routes";
+import teacherRoutes from "./routes/staff.routes";
 import studentRoutes from "./routes/student.routes";
 import subscriptionRoutes from "./routes/subscription.routes";
 import paymentRoutes from "./routes/payment.routes"; 

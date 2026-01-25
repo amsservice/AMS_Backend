@@ -4,7 +4,7 @@
 import { Class } from '../models/Class';
 import { Types } from 'mongoose';
 import { Student } from '../models/Student';
-import { Teacher } from '../models/Teacher';
+import { Staff } from '../models/Staff';
 
 interface CreateClassInput {
   name: string;
@@ -98,7 +98,7 @@ export class ClassService {
         setUpdate['history.$[h].section'] = updatedClass.section;
       }
 
-      await Teacher.updateMany(
+      await Staff.updateMany(
         { schoolId, history: { $elemMatch: { sessionId, classId } } },
         { $set: setUpdate },
         { arrayFilters: [{ 'h.sessionId': sessionId, 'h.classId': classId }] }
@@ -143,7 +143,7 @@ export class ClassService {
 
     const hasTeacherAssigned = Boolean(classDoc.teacherId);
 
-    const hasTeacherHistory = await Teacher.exists({
+    const hasTeacherHistory = await Staff.exists({
       schoolId,
       history: {
         $elemMatch: {
