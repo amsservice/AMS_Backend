@@ -3,38 +3,18 @@ import dns from "dns/promises";
 
 import { School } from "../models/School";
 import { Principal } from "../models/Principal";
-import { Teacher } from "../models/Teacher";
+import { Staff } from "../models/Staff";
 import { Student } from "../models/Student";
 import { PaymentIntent } from "../models/PaymentIntent";
 import { SubscriptionService } from "./subscription.service";
-import { 
-  signAccessToken, 
-  signRefreshToken, 
+import {
+  signAccessToken,
+  signRefreshToken,
   verifyRefreshToken,
-  JwtPayload 
+  JwtPayload,
 } from "../utils/jwt";
 import { sendOtp } from "../utils/sendOtp";
-
-/* ======================================================
-   HELPERS
-====================================================== */
-
-// const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-
-// is-email-maybe -> library to validate email
-
-// const blockedDomains = [
-//   "mailinator.com",
-//   "tempmail.com",
-//   "10minutemail.com",
-//   "yopmail.com",
-// ];
-
-// const verifyGmailMx = async (email: string) => {
-//   const domain = email.split("@")[1];
-//   const records = await dns.resolveMx(domain);
-//   return records.some((r) => r.exchange.includes("google.com"));
-// };
+import { UserRole } from "../utils/jwt";
 
 const generateOtp = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
@@ -64,46 +44,97 @@ export class AuthService {
     };
   }
 
-/* ======================================================
-    REFRESH TOKEN LOGIC
-====================================================== */
-static async refreshAccessToken(refreshToken: string) {
-  try {
-    // 1️⃣ Verify using the REFRESH-specific function
-    const payload = verifyRefreshToken(refreshToken);
+  static async getMe(userId: string, roles: UserRole[]) {
 
-    // 2️⃣ Check if user still exists/is active in DB
-    let user;
-    if (payload.role === "principal") user = await Principal.findById(payload.userId);
-    else if (payload.role === "teacher") user = await Teacher.findById(payload.userId);
-    else if (payload.role === "student") user = await Student.findById(payload.userId);
+    // Priority order (important)
+    if (roles.includes("principal")) {
+      const principal = await Principal.findById(userId).select("name email");
+      if (!principal) return null;
 
-    if (!user) {
-      throw new Error("User no longer exists");
+      return {
+        id: principal._id.toString(),
+        name: principal.name,
+        email: principal.email,
+        roles
+      };
     }
 
-    // 3️⃣ Generate a fresh Access Token
-    const newAccessToken = signAccessToken({
-      userId: payload.userId,
-      role: payload.role,
-      schoolId: payload.schoolId,
-    });
+    if (roles.includes("teacher") || roles.includes("coordinator")) {
+      const staff = await Staff.findById(userId).select("name email roles");
+      if (!staff) return null;
 
-    return {
-      accessToken: newAccessToken,
-      refreshToken: signRefreshToken(payload)
-    };
-  } catch (error: any) {
-    // Catch specific expiry error from our new utility
-    const message = error.message === "Refresh token expired. Please login again." 
-      ? error.message 
-      : "Invalid session";
-      
-    const err: any = new Error(message);
-    err.statusCode = 401;
-    throw err;
+      return {
+        id: staff._id.toString(),
+        name: staff.name,
+        email: staff.email,
+        roles: staff.roles   // DB is source for staff roles
+      };
+    }
+
+    if (roles.includes("student")) {
+      const student = await Student.findById(userId).select("name email");
+      if (!student) return null;
+
+      return {
+        id: student._id.toString(),
+        name: student.name,
+        email: student.email,
+        roles
+      };
+    }
+
+    return null;
   }
-}
+
+  /* ======================================================
+    REFRESH TOKEN LOGIC
+====================================================== */
+  static async refreshAccessToken(refreshToken: string) {
+    try {
+      // 1️⃣ Verify using the REFRESH-specific function
+      const payload = verifyRefreshToken(refreshToken);
+
+      // 2️⃣ Check if user still exists/is active in DB
+      let user;
+
+      if (payload.roles.includes("principal")) {
+        user = await Principal.findById(payload.userId);
+      } else if (
+        payload.roles.includes("teacher") ||
+        payload.roles.includes("coordinator")
+      ) {
+        user = await Staff.findById(payload.userId);
+      } else if (payload.roles.includes("student")) {
+        user = await Student.findById(payload.userId);
+      }
+
+      if (!user) {
+        throw new Error("User no longer exists");
+      }
+
+      // 3️⃣ Generate a fresh Access Token
+      const newAccessToken = signAccessToken({
+        userId: payload.userId,
+        roles: payload.roles,
+        schoolId: payload.schoolId,
+      });
+
+      return {
+        accessToken: newAccessToken,
+        refreshToken: signRefreshToken(payload),
+      };
+    } catch (error: any) {
+      // Catch specific expiry error from our new utility
+      const message =
+        error.message === "Refresh token expired. Please login again."
+          ? error.message
+          : "Invalid session";
+
+      const err: any = new Error(message);
+      err.statusCode = 401;
+      throw err;
+    }
+  }
 
   /* ======================================================
      REGISTER SCHOOL (GMAIL + OTP ONLY)
@@ -496,7 +527,7 @@ static async refreshAccessToken(refreshToken: string) {
     // 4️⃣ Issue JWT
     const payload: JwtPayload = {
       userId: principal._id.toString(),
-      role: "principal",
+      roles: ["principal"],
       schoolId: school._id.toString(),
     };
 
@@ -510,7 +541,7 @@ static async refreshAccessToken(refreshToken: string) {
         id: principal._id,
         name: principal.name, // Ensure 'name' exists on your Principal model
         email: principal.email,
-        role: "principal",
+        roles: ["principal"],
       },
     };
   }
@@ -519,39 +550,34 @@ static async refreshAccessToken(refreshToken: string) {
      TEACHER LOGIN (UNCHANGED)
   ====================================================== */
 
-  static async loginTeacher(email: string, password: string) {
+  static async loginStaff(email: string, password: string) {
     const normalizedEmail = email.toLowerCase().trim();
 
-    // 1️⃣ Find teacher and include password for verification
-    const teacher = await Teacher.findOne({ email: normalizedEmail }).select(
+    const staff = await Staff.findOne({ email: normalizedEmail }).select(
       "+password",
     );
-    if (!teacher) throw new Error("Invalid email or password");
+    if (!staff) throw new Error("Invalid email or password");
 
-    // 2️⃣ Password check
-    const isMatch = await teacher.comparePassword(password);
+    const isMatch = await staff.comparePassword(password);
     if (!isMatch) throw new Error("Invalid password");
 
-    // 3️⃣ Define the payload using the JwtPayload interface
     const payload: JwtPayload = {
-      userId: teacher._id.toString(),
-      role: "teacher",
-      schoolId: teacher.schoolId.toString(),
+      userId: staff._id.toString(),
+      roles: staff.roles,
+      schoolId: staff.schoolId.toString(),
     };
 
-    // 4️⃣ Generate both tokens
     const accessToken = signAccessToken(payload);
     const refreshToken = signRefreshToken(payload);
 
-    // 5️⃣ Return tokens and basic user info
     return {
       accessToken,
       refreshToken,
       user: {
-        id: teacher._id,
-        name: teacher.name,
-        email: teacher.email,
-        role: "teacher",
+        id: staff._id,
+        name: staff.name,
+        email: staff.email,
+        roles: staff.roles,
       },
     };
   }
@@ -573,7 +599,7 @@ static async refreshAccessToken(refreshToken: string) {
     // 1️⃣ Prepare the payload
     const payload: JwtPayload = {
       userId: student._id.toString(),
-      role: "student",
+      roles: ["student"],
       schoolId: student.schoolId.toString(),
     };
 
@@ -604,7 +630,7 @@ static async refreshAccessToken(refreshToken: string) {
       password?: string;
       phone?: string;
       qualification?: string;
-      gender?: 'Male' | 'Female' | 'Other';
+      gender?: "Male" | "Female" | "Other";
       yearsOfExperience?: number;
     },
   ) {
@@ -692,7 +718,7 @@ static async refreshAccessToken(refreshToken: string) {
     // 5️⃣ Generate Tokens
     const payload: JwtPayload = {
       userId: principal._id.toString(),
-      role: "principal",
+      roles: ["principal"],
       schoolId: school._id.toString(),
     };
 
@@ -710,7 +736,7 @@ static async refreshAccessToken(refreshToken: string) {
         id: principal._id,
         name: principal.name,
         email: principal.email,
-        role: "principal",
+        roles: ["principal"],
       },
     };
   }
@@ -718,61 +744,61 @@ static async refreshAccessToken(refreshToken: string) {
   /* ======================================================
    RESEND OTP (RATE LIMITED)
 ====================================================== */
-static async resendSchoolOtp(email: string) {
-  const normalizedEmail = email.toLowerCase().trim();
-  const school = await School.findOne({ email: normalizedEmail });
+  static async resendSchoolOtp(email: string) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const school = await School.findOne({ email: normalizedEmail });
 
-  if (!school) {
-    throw new Error("School not found");
+    if (!school) {
+      throw new Error("School not found");
+    }
+
+    if (school.isEmailVerified) {
+      throw new Error("Email already verified");
+    }
+
+    const now = new Date();
+
+    // 1️⃣ Rate Limiting: 60-second cooldown
+    if (
+      school.lastOtpSentAt &&
+      now.getTime() - school.lastOtpSentAt.getTime() < 60 * 1000
+    ) {
+      throw new Error("Please wait 60 seconds before resending OTP");
+    }
+
+    // 2️⃣ Rate Limiting: Max 5 OTPs per hour
+    if (
+      school.otpResendCount &&
+      school.otpResendCount >= 5 &&
+      school.lastOtpSentAt &&
+      now.getTime() - school.lastOtpSentAt.getTime() < 60 * 60 * 1000
+    ) {
+      throw new Error("Too many OTP requests. Try again later.");
+    }
+
+    // 3️⃣ Generate new OTP (6 digits)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 4️⃣ Update School Record
+    school.emailOtp = otp;
+    school.otpExpires = new Date(now.getTime() + 10 * 60 * 1000); // 10 min expiry
+    school.lastOtpSentAt = now;
+
+    // Reset count if an hour has passed, otherwise increment
+    const oneHourAgo = now.getTime() - 60 * 60 * 1000;
+    if (school.lastOtpSentAt && school.lastOtpSentAt.getTime() < oneHourAgo) {
+      school.otpResendCount = 1;
+    } else {
+      school.otpResendCount = (school.otpResendCount || 0) + 1;
+    }
+
+    await school.save();
+
+    // 5️⃣ Send the Email
+    await sendOtp(school.email, otp);
+
+    return {
+      message: "A new OTP has been sent to your Gmail.",
+    };
   }
-
-  if (school.isEmailVerified) {
-    throw new Error("Email already verified");
-  }
-
-  const now = new Date();
-
-  // 1️⃣ Rate Limiting: 60-second cooldown
-  if (
-    school.lastOtpSentAt &&
-    now.getTime() - school.lastOtpSentAt.getTime() < 60 * 1000
-  ) {
-    throw new Error("Please wait 60 seconds before resending OTP");
-  }
-
-  // 2️⃣ Rate Limiting: Max 5 OTPs per hour
-  if (
-    school.otpResendCount &&
-    school.otpResendCount >= 5 &&
-    school.lastOtpSentAt &&
-    now.getTime() - school.lastOtpSentAt.getTime() < 60 * 60 * 1000
-  ) {
-    throw new Error("Too many OTP requests. Try again later.");
-  }
-
-  // 3️⃣ Generate new OTP (6 digits)
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-  // 4️⃣ Update School Record
-  school.emailOtp = otp;
-  school.otpExpires = new Date(now.getTime() + 10 * 60 * 1000); // 10 min expiry
-  school.lastOtpSentAt = now;
-  
-  // Reset count if an hour has passed, otherwise increment
-  const oneHourAgo = now.getTime() - 60 * 60 * 1000;
-  if (school.lastOtpSentAt && school.lastOtpSentAt.getTime() < oneHourAgo) {
-    school.otpResendCount = 1;
-  } else {
-    school.otpResendCount = (school.otpResendCount || 0) + 1;
-  }
-
-  await school.save();
-
-  // 5️⃣ Send the Email
-  await sendOtp(school.email, otp);
-
-  return {
-    message: "A new OTP has been sent to your Gmail.",
-  };
-}
 }

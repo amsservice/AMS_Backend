@@ -376,7 +376,7 @@ export const verifyPayment = async (req: Request, res: Response) => {
 
     const payload: JwtPayload = {
       userId: principal._id.toString(),
-      role: "principal",
+      roles: ["principal"],
       schoolId: school._id.toString(),
     };
 
@@ -391,7 +391,7 @@ export const verifyPayment = async (req: Request, res: Response) => {
         id: principal._id.toString(),
         name: principal.name,
         email: principal.email,
-        role: "principal",
+        roles: ["principal"],
       },
       message: "Payment verified & subscription activated",
     });

@@ -6,7 +6,7 @@ export type UserRole = "principal" | "teacher" | "student" | "admin" | "coordina
 
 export interface JwtPayload {
   userId: string;
-  role: UserRole;
+  roles: UserRole[];
   schoolId: string;
 }
 

@@ -33,6 +33,25 @@ export const refreshToken = async (req: Request, res: Response) => {
   }
 };
 
+export const getMe = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId, roles } = req.user!;
+
+    const user = await AuthService.getMe(userId, roles);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.json({ user });
+
+  } catch (err) {
+    console.error("getMe error:", err);
+    res.status(500).json({ message: "Failed to fetch user" });
+  }
+};
+
+
 export const registerSchool = async (req: Request, res: Response) => {
   try {
     const result = await AuthService.registerSchool(req.body);
@@ -174,7 +193,7 @@ export const getPrincipalProfile = async (req: AuthRequest, res: Response) => {
 ====================================================== */
 export const loginTeacher = async (req: Request, res: Response) => {
   const { email, password } = req.body;
-  const result = await AuthService.loginTeacher(email, password);
+  const result = await AuthService.loginStaff(email, password);
   setAuthCookies(res, result.accessToken, result.refreshToken);
   const { accessToken, refreshToken, ...safeResult } = result; 
   res.status(200).json(safeResult);

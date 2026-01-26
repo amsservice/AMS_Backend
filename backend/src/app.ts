@@ -10,7 +10,7 @@ import authRoutes from "./routes/auth.routes";
 import schoolRoutes from "./routes/school.routes";
 import sessionRoutes from "./routes/session.routes";
 import classRoutes from "./routes/class.routes";
-import teacherRoutes from "./routes/teacher.routes";
+import staffRoutes from "./routes/staff.routes";
 import studentRoutes from "./routes/student.routes";
 import subscriptionRoutes from "./routes/subscription.routes";
 import paymentRoutes from "./routes/payment.routes"; 
@@ -44,13 +44,13 @@ app.use(express.urlencoded({ extended: true }));
 
 //  Mount routes
 app.get("/", (req, res) => {
-  res.json({status:"success",message:"This is where the magic happens ✨"});
+  res.json({status:"success",message:"Upastithi Matters ✨"});
 })
 app.use("/api/auth", authRoutes);
 app.use("/api/school",schoolRoutes);
 app.use("/api/session",sessionRoutes);
 app.use("/api/class",classRoutes);
-app.use("/api/teacher",teacherRoutes);
+app.use("/api/staff",staffRoutes);
 app.use("/api/student",studentRoutes);
 app.use("/api/subscription",subscriptionRoutes);
 app.use("/api/payment",paymentRoutes);
