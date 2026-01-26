@@ -1,10 +1,14 @@
 import { Schema, model, Document } from 'mongoose';
+import { Types } from 'mongoose';
 
 export interface PaymentIntentDoc extends Document {
   orderId: string;
   paymentId?: string;
 
-  planId: '1Y' | '2Y' | '3Y';
+  schoolId?: Types.ObjectId;
+  intentMode: 'register' | 'upgrade';
+
+  planId: '6M' | '1Y' | '2Y' | '3Y';
   enteredStudents: number;
   futureStudents?: number;
   couponCode?: 'FREE_3M' | 'FREE_6M';
@@ -17,7 +21,19 @@ const PaymentIntentSchema = new Schema<PaymentIntentDoc>(
     orderId: { type: String, required: true, unique: true },
     paymentId: String,
 
-    planId: { type: String, enum: ['1Y', '2Y', '3Y'], required: true },
+    schoolId: {
+      type: Schema.Types.ObjectId,
+      ref: 'School',
+      index: true
+    },
+
+    intentMode: {
+      type: String,
+      enum: ['register', 'upgrade'],
+      default: 'register'
+    },
+
+    planId: { type: String, enum: ['6M', '1Y', '2Y', '3Y'], required: true },
     enteredStudents: { type: Number, required: true },
     futureStudents: Number,
     couponCode: { type: String, enum: ['FREE_3M', 'FREE_6M'] },

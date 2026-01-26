@@ -1,21 +1,25 @@
 import { Router } from 'express';
 import {
   createTeacher,
+  bulkUploadTeachers,
   listTeachers,
   updateTeacher,
   deleteTeacher,
+  reactivateTeacher,
   getMyProfile,
   updateMyProfile,
   assignClassToTeacher, 
   changeMyPassword,
   getActiveTeacherCount,
-  deactivateTeacher,
-  swapTeacherClasses
+  swapTeacherClasses,
+  getTeacherFullProfileByRole,
+  updateTeacherProfileByRole
 } from '../controllers/teacher.controller';
 
 import { authMiddleware } from '../middleware/auth.middleware';
 import { allowRoles } from '../middleware/role.middleware';
 import { validate } from '../middleware/validate.middleware';
+import { uploadCSV } from '../middleware/upload.middleware';
 import {
   createTeacherSchema,
   updateTeacherSchema,
@@ -48,6 +52,19 @@ router.post(
   createTeacher
 );
 
+router.put(
+  '/:id/reactivate',
+  allowRoles(['principal']),
+  reactivateTeacher
+);
+
+router.post(
+  '/bulk-upload',
+  allowRoles(['principal']),
+  uploadCSV.single('csvFile'),
+  bulkUploadTeachers
+);
+
 router.get('/', allowRoles(['principal']), listTeachers);
 
 router.put(
@@ -71,9 +88,6 @@ router.post(
   allowRoles(['principal']),
   assignClassToTeacher
 );
-//deactivate teacher
-router.put('/:teacherId/deactivate', deactivateTeacher);
-
 
 /* ======================================================
    TEACHER: CHANGE OWN PASSWORD
@@ -107,6 +121,32 @@ router.put(
   swapTeacherClasses
 );
 
+
+/* ======================================================
+   FULL TEACHER PROFILE
+====================================================== */
+
+// Teacher → own profile
+router.get(
+  '/me/full',
+  allowRoles(['teacher']),
+  getTeacherFullProfileByRole
+);
+
+// Principal → any teacher profile
+router.get(
+  '/:id/full',
+  allowRoles(['principal']),
+  getTeacherFullProfileByRole
+);
+
+// update teacher profile (profile fields only)
+router.put(
+  '/:id/profile',
+  allowRoles(['principal']),
+  validate(updateMyProfileSchema),
+  updateTeacherProfileByRole
+);
 
 
 export default router;

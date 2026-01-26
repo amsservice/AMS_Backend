@@ -1,5 +1,5 @@
 import { Router,Response } from 'express';
-import { createStudent, getMyProfile,updateStudentByTeacher,changeMyPassword,getTotalStudentsClassWise,getMyStudents,bulkUploadStudents,createStudentByPrincipal,getSchoolStudents,bulkUploadStudentsSchoolWide, getStudentsByClass } from '../controllers/student.controller';
+import { createStudent, getMyProfile,updateStudentByTeacher,changeMyPassword,getTotalStudentsClassWise,getMyStudents,bulkUploadStudents,createStudentByPrincipal,getSchoolStudents,bulkUploadStudentsSchoolWide, getStudentsByClass,getStudentById, deactivateStudent } from '../controllers/student.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { enforceStudentLimit } from '../middleware/planLimit.middleware';
@@ -8,7 +8,6 @@ import { allowRoles } from '../middleware/role.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { uploadCSV } from '../middleware/upload.middleware';
 import { createStudentSchema,updateStudentSchema,changePasswordSchema } from '../config/zod.schema';
-
 
 const router = Router();
 
@@ -27,36 +26,6 @@ router.post(
   validate(createStudentSchema),
   createStudentHandler
 );
-
-
-
-
-/* 
-   TEACHER: ADD STUDENT
- */
-// router.post(
-//   '/',
-//   authMiddleware,
-//   allowRoles(['teacher','principal']),
-//   validate(createStudentSchema),
-//   createStudent
-// );
-
-// router.post(
-//   '/',
-//   authMiddleware,
-//   allowRoles(['teacher', 'principal']),
-//   validate(createStudentSchema),
-//   (req: AuthRequest, res: Response) => {
-//     if (req.user!.role === 'teacher') {
-//       return createStudent(req, res);
-//     }
-//     return createStudentByPrincipal(req, res);
-//   }
-// );
-
-
-
 
 /*
    STUDENT: MY PROFILE
@@ -90,6 +59,19 @@ router.put(
   changeMyPassword
 );
 
+router.get(
+  '/school-students',
+  authMiddleware,
+  allowRoles(['principal']),
+  getSchoolStudents
+);
+
+router.put(
+  '/:id/deactivate',
+  authMiddleware,
+  allowRoles(['principal']),
+  deactivateStudent
+);
 
 /* =====================================================
    PRINCIPAL DASHBOARD get all student class wise
@@ -109,13 +91,6 @@ router.get(
   authMiddleware,
   allowRoles(['teacher']),
   getMyStudents
-);
-
-router.get(
-  '/school-students',
-  authMiddleware,
-  allowRoles(['principal']),
-  getSchoolStudents
 );
 
 router.get(
@@ -142,6 +117,17 @@ router.post(
   enforceStudentLimit,
   uploadCSV.single('csvFile'),
   bulkUploadStudentsSchoolWide
+);
+
+/* =====================================================
+   GET FULL STUDENT DETAILS
+   principal | teacher | student (self only)
+===================================================== */
+router.get(
+  '/:id',
+  authMiddleware,
+  allowRoles(['principal', 'teacher', 'student']),
+  getStudentById
 );
 
 export default router;

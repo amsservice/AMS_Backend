@@ -4,7 +4,7 @@ import { Schema, model, Types, Document } from 'mongoose';
 export interface SubscriptionDoc extends Document {
   schoolId: Types.ObjectId;
 
-  planId: '1Y' | '2Y' | '3Y';
+  planId: '6M' | '1Y' | '2Y' | '3Y';
 
   orderId: string;        // ✅ Razorpay order id
   paymentId: string;     // ✅ Razorpay payment id
@@ -26,7 +26,7 @@ export interface SubscriptionDoc extends Document {
   gracePeriodDays: number;
   graceEndDate: Date;
 
-  status: 'active' | 'grace' | 'expired';
+  status: 'active' | 'grace' | 'queued' | 'expired';
 
   previousSubscriptionId?: Types.ObjectId;
 
@@ -45,7 +45,7 @@ const SubscriptionSchema = new Schema<SubscriptionDoc>(
 
     planId: {
       type: String,
-      enum: ['1Y', '2Y', '3Y'],
+      enum: ['6M', '1Y', '2Y', '3Y'],
       required: true
     },
 
@@ -83,7 +83,7 @@ const SubscriptionSchema = new Schema<SubscriptionDoc>(
 
     status: {
       type: String,
-      enum: ['active', 'grace', 'expired'],
+      enum: ['active', 'grace', 'queued', 'expired'],
       default: 'active'
     },
 

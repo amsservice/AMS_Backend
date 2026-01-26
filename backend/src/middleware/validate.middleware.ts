@@ -12,7 +12,7 @@ export const validate =
         errors: result.error.issues
       });
     }
-    
 
+    req.body = result.data;
     next();
   };

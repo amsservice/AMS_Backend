@@ -288,26 +288,30 @@ export const deleteClass = async (
   req: AuthRequest,
   res: Response
 ): Promise<void> => {
-  const activeSession = await Session.findOne({
-    schoolId: req.user!.schoolId,
-    isActive: true
-  });
+  try {
+    const activeSession = await Session.findOne({
+      schoolId: req.user!.schoolId,
+      isActive: true
+    });
 
-  if (!activeSession) {
-    res.status(400).json({ message: 'No active session found' });
-    return;
+    if (!activeSession) {
+      res.status(400).json({ message: 'No active session found' });
+      return;
+    }
+
+    const deleted = await ClassService.deleteClass(
+      new Types.ObjectId(req.params.id),
+      new Types.ObjectId(req.user!.schoolId),
+      activeSession._id
+    );
+
+    if (!deleted) {
+      res.status(404).json({ message: 'Class not found' });
+      return;
+    }
+
+    res.json({ message: 'Class deleted successfully' });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
   }
-
-  const deleted = await ClassService.deleteClass(
-    new Types.ObjectId(req.params.id),
-    new Types.ObjectId(req.user!.schoolId),
-    activeSession._id
-  );
-
-  if (!deleted) {
-    res.status(404).json({ message: 'Class not found' });
-    return;
-  }
-
-  res.json({ message: 'Class deleted successfully' });
 };

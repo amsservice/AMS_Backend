@@ -314,6 +314,42 @@ export class StudentService {
       .sort({ 'history.rollNo': 1 });
   }
 
+  static async deactivateStudent(schoolId: string, studentId: string) {
+    const schoolObjectId = new Types.ObjectId(schoolId);
+
+    const activeSession = await Session.findOne({
+      schoolId: schoolObjectId,
+      isActive: true
+    });
+
+    if (!activeSession) {
+      throw new Error('No active session found');
+    }
+
+    const updated = await Student.findOneAndUpdate(
+      {
+        _id: studentId,
+        schoolId: schoolObjectId
+      },
+      {
+        $set: {
+          status: 'inactive',
+          'history.$[h].isActive': false
+        }
+      },
+      {
+        new: true,
+        arrayFilters: [{ 'h.sessionId': activeSession._id, 'h.isActive': true }]
+      }
+    ).select('-password');
+
+    if (!updated) {
+      throw new Error('Student not found');
+    }
+
+    return { message: 'Student deactivated successfully' };
+  }
+
   /* =====================================================
     BULK CREATE STUDENTS (TEACHER / PRINCIPAL)
  ===================================================== */
@@ -658,8 +694,8 @@ export class StudentService {
       parentsPhone: string;
       rollNo: number;
       classId: string;
-      className: string;
-      section: string;
+      className?: string;
+      section?: string;
     }
   ) {
     const schoolObjectId = new Types.ObjectId(schoolId);
@@ -674,13 +710,30 @@ export class StudentService {
       throw new Error('No active session found');
     }
 
+    const classDoc = await Class.findOne({
+      _id: classObjectId,
+      schoolId: schoolObjectId,
+      sessionId: activeSession._id
+    }).lean();
+
+    if (!classDoc) {
+      throw new Error('Class not found');
+    }
+
+    const resolvedClassName = (data.className ?? classDoc.name ?? '').toString().trim();
+    const resolvedSection = (data.section ?? classDoc.section ?? '').toString().trim();
+
+    if (!resolvedClassName || !resolvedSection) {
+      throw new Error('className and section are required');
+    }
+
     const student = await Student.create({
       name: data.name.trim(),
       email:
         data.email && data.email.trim() !== ''
           ? data.email.trim().toLowerCase()
           : undefined,
-      password: data.password, // 🔥 schema will hash
+      password: data.password, // schema will hash
       admissionNo: data.admissionNo.trim(),
       fatherName: data.fatherName.trim(),
       motherName: data.motherName.trim(),
@@ -690,8 +743,8 @@ export class StudentService {
         {
           sessionId: activeSession._id,
           classId: classObjectId,
-          className: data.className,
-          section: data.section,
+          className: resolvedClassName,
+          section: resolvedSection,
           rollNo: data.rollNo,
           isActive: true
         }
@@ -703,4 +756,64 @@ export class StudentService {
       studentId: student._id.toString()
     };
   }
+
+
+  //get full detail of students 
+
+    /* =====================================================
+     PRINCIPAL → GET ANY STUDENT OF SCHOOL
+  ===================================================== */
+  static async getStudentForPrincipal(
+    schoolId: string,
+    studentId: string
+  ) {
+    return Student.findOne({
+      _id: new Types.ObjectId(studentId),
+      schoolId: new Types.ObjectId(schoolId)
+    })
+      .select('-password')
+      .lean();
+  }
+
+  /* =====================================================
+     TEACHER → GET STUDENT OF OWN ACTIVE CLASS
+  ===================================================== */
+  static async getStudentForTeacher(
+    teacherId: string,
+    studentId: string
+  ) {
+    const teacher = await Teacher.findById(teacherId).lean();
+    if (!teacher) {
+      throw new Error('Teacher not found');
+    }
+
+    const activeClass = teacher.history.find(h => h.isActive);
+    if (!activeClass) {
+      throw new Error('Teacher has no active class');
+    }
+
+    return Student.findOne({
+      _id: new Types.ObjectId(studentId),
+      schoolId: teacher.schoolId,
+      history: {
+        $elemMatch: {
+          classId: activeClass.classId,
+          sessionId: activeClass.sessionId,
+          isActive: true
+        }
+      }
+    })
+      .select('-password')
+      .lean();
+  }
+
+  /* =====================================================
+     STUDENT → GET OWN FULL PROFILE
+  ===================================================== */
+  static async getStudentForStudent(studentId: string) {
+    return Student.findById(studentId)
+      .select('-password')
+      .lean();
+  }
+
 }

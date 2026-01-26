@@ -40,6 +40,7 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 // Middlewares
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 //  Mount routes
 app.get("/", (req, res) => {

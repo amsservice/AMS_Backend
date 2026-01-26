@@ -56,12 +56,6 @@ async function checkOverlap(
 
 export class HolidayService {
   static async createHoliday(data: CreateHolidayInput): Promise<IHoliday> {
-    await checkOverlap(
-      data.schoolId,
-      data.sessionId,
-      data.startDate,
-      data.endDate
-    );
     return Holiday.create(data);
   }
 /* -------- READ -------- */
@@ -82,30 +76,37 @@ export class HolidayService {
     const normalizedEndDate =
       data.endDate === null ? undefined : data.endDate;
 
-    if (data.startDate) {
-      await checkOverlap(
-        schoolId,
-        sessionId,
-        data.startDate,
-        normalizedEndDate,
-        id
-      );
-    }
-
     return Holiday.findOneAndUpdate(
-      { _id: id, schoolId },
+      { _id: id, schoolId, sessionId },
       {
         ...data,
         endDate: normalizedEndDate
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true, context: 'query' }
     );
   }
 
-  static deleteHoliday(
+  static async deleteHoliday(
     id: Types.ObjectId,
     schoolId: Types.ObjectId
   ): Promise<IHoliday | null> {
+    const existing = await Holiday.findOne({ _id: id, schoolId });
+    if (!existing) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const start = new Date(existing.startDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = existing.endDate ? new Date(existing.endDate) : new Date(existing.startDate);
+    end.setHours(0, 0, 0, 0);
+
+    const isPastHoliday = end.getTime() < today.getTime();
+    if (isPastHoliday) {
+      throw new Error('Past holidays cannot be deleted');
+    }
+
     return Holiday.findOneAndDelete({ _id: id, schoolId });
   }
 }

@@ -8,7 +8,9 @@ import {
   previewPrice,
   createPayment,
    renewSubscription ,
-    getBillableStudents
+    getBillableStudents,
+    getInvoiceHistory,
+    downloadInvoicePdf
 } from '../controllers/subscription.controller';
 
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -46,12 +48,41 @@ router.post(
 router.post('/renew',validate(renewSubscriptionSchema), renewSubscription);
 
 /* ===============================
+   UPGRADE FLOW (PRINCIPAL ONLY)
+================================ */
+router.post(
+  '/upgrade/price-preview',
+  authMiddleware,
+  validate(pricePreviewSchema),
+  previewPrice
+);
+
+router.post(
+  '/upgrade/create-payment',
+  authMiddleware,
+  validate(createPaymentSchema),
+  createPayment
+);
+
+/* ===============================
    BILLABLE STUDENTS (PRINCIPAL)
 ================================ */
 router.get(
   '/billable-students',
   authMiddleware,
   getBillableStudents
+);
+
+router.get(
+  '/invoices',
+  authMiddleware,
+  getInvoiceHistory
+);
+
+router.get(
+  '/invoices/:invoiceId/pdf',
+  authMiddleware,
+  downloadInvoicePdf
 );
 
 export default router;

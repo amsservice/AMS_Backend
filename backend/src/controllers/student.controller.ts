@@ -106,6 +106,43 @@ export const getStudentsByClass = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const deleteStudent = async (req: AuthRequest, res: Response) => {
+  const role = req.user!.role;
+  if (role !== 'principal') {
+    return res.status(403).json({ message: 'Only principal can delete student' });
+  }
+
+  const studentId = req.params.id;
+  if (!studentId) {
+    return res.status(400).json({ message: 'Student id is required' });
+  }
+
+  try {
+    const result = await StudentService.deactivateStudent(req.user!.schoolId!, studentId);
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(400).json({ message: err.message });
+  }
+};
+
+export const deactivateStudent = async (req: AuthRequest, res: Response) => {
+  const role = req.user!.role;
+  if (role !== 'principal') {
+    return res.status(403).json({ message: 'Only principal can deactivate student' });
+  }
+
+  const studentId = req.params.id;
+  if (!studentId) {
+    return res.status(400).json({ message: 'Student id is required' });
+  }
+
+  try {
+    const result = await StudentService.deactivateStudent(req.user!.schoolId!, studentId);
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(400).json({ message: err.message });
+  }
+};
 
 export const bulkUploadStudentsSchoolWide = async (
   req: AuthRequest,
@@ -210,6 +247,15 @@ export const bulkUploadStudentsSchoolWide = async (
       },
       students
     );
+
+    if (!result?.success) {
+      return res.status(400).json({
+        message: 'CSV validation failed',
+        ...(result as any),
+        invalidRowsCount: invalidRows.length,
+        invalidRows
+      });
+    }
 
     return res.status(201).json({
       ...result,
@@ -484,5 +530,59 @@ export const createStudentByPrincipal = async (
       return res.status(400).json({ message: buildDuplicateKeyMessage(err) });
     }
     res.status(400).json({ message: err.message });
+  }
+};
+
+
+/* =====================================================
+   GET FULL STUDENT DETAILS
+   principal | teacher | student
+===================================================== */
+export const getStudentById = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const { id } = req.params;
+  const { role, userId, schoolId } = req.user!;
+
+  if (!Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid student id' });
+  }
+
+  try {
+    let student;
+
+    if (role === 'principal') {
+      student = await StudentService.getStudentForPrincipal(
+        schoolId!,
+        id
+      );
+    }
+
+    if (role === 'teacher') {
+      student = await StudentService.getStudentForTeacher(
+        userId,
+        id
+      );
+    }
+
+    if (role === 'student') {
+      if (userId !== id) {
+        return res.status(403).json({
+          message: 'Students can only access their own profile'
+        });
+      }
+      student = await StudentService.getStudentForStudent(id);
+    }
+
+    if (!student) {
+      return res.status(404).json({
+        message: 'Student not found or access denied'
+      });
+    }
+
+    return res.json(student);
+  } catch (err: any) {
+    return res.status(400).json({ message: err.message });
   }
 };

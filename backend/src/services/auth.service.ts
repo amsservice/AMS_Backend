@@ -112,6 +112,7 @@ static async refreshAccessToken(refreshToken: string) {
     const {
       schoolName,
       schoolEmail,
+      establishedYear,
       phone,
       address,
       pincode,
@@ -123,6 +124,8 @@ static async refreshAccessToken(refreshToken: string) {
       //principal
       principalName,
       principalEmail,
+      principalPhone,
+      principalQualification,
       principalPassword,
       principalGender,
       principalExperience,
@@ -133,22 +136,6 @@ static async refreshAccessToken(refreshToken: string) {
       .toLowerCase()
       .trim();
 
-    // // 1️⃣ Gmail validation
-    // if (!gmailRegex.test(normalizedSchoolEmail)) {
-    //   throw new Error("Only Gmail addresses are allowed");
-    // }
-
-    // // 2️⃣ Temporary email block
-    // const domain = normalizedSchoolEmail.split("@")[1];
-    // if (blockedDomains.includes(domain)) {
-    //   throw new Error("Temporary email addresses are not allowed");
-    // }
-
-    // // 3️⃣ Gmail MX check
-    // if (!(await verifyGmailMx(normalizedSchoolEmail))) {
-    //   throw new Error("Invalid Gmail domain");
-    // }
-
     // 4️⃣ Duplicate school email
     const existingSchool = await School.findOne({
       email: normalizedSchoolEmail,
@@ -158,6 +145,7 @@ static async refreshAccessToken(refreshToken: string) {
         return await this.updatePendingSchoolRegistration({
           schoolName,
           schoolEmail: normalizedSchoolEmail,
+          establishedYear,
           phone,
           address,
           pincode,
@@ -168,6 +156,8 @@ static async refreshAccessToken(refreshToken: string) {
           state,
           principalName,
           principalEmail,
+          principalPhone,
+          principalQualification,
           principalPassword,
           principalGender,
           principalExperience,
@@ -216,6 +206,7 @@ static async refreshAccessToken(refreshToken: string) {
           {
             name: schoolName,
             email: normalizedSchoolEmail,
+            establishedYear,
             phone,
             address,
             pincode,
@@ -242,6 +233,8 @@ static async refreshAccessToken(refreshToken: string) {
             name: principalName,
             email: normalizedPrincipalEmail,
             password: principalPassword,
+            phone: principalPhone,
+            qualification: principalQualification,
             gender: principalGender, // optional
             yearsOfExperience: principalExperience, // optional
             schoolId: school._id,
@@ -272,6 +265,7 @@ static async refreshAccessToken(refreshToken: string) {
     const {
       schoolName,
       schoolEmail,
+      establishedYear,
       phone,
       address,
       pincode,
@@ -282,6 +276,8 @@ static async refreshAccessToken(refreshToken: string) {
       state,
       principalName,
       principalEmail,
+      principalPhone,
+      principalQualification,
       principalPassword,
       principalGender,
       principalExperience,
@@ -313,6 +309,7 @@ static async refreshAccessToken(refreshToken: string) {
     }
 
     school.name = schoolName;
+    school.establishedYear = establishedYear;
     school.phone = phone;
     school.address = address;
     school.pincode = pincode;
@@ -345,6 +342,8 @@ static async refreshAccessToken(refreshToken: string) {
         principal.name = principalName;
         principal.email = normalizedPrincipalEmail;
         principal.password = principalPassword;
+        principal.phone = principalPhone;
+        principal.qualification = principalQualification;
         principal.gender = principalGender;
         principal.yearsOfExperience = principalExperience;
         await principal.save();
@@ -491,7 +490,7 @@ static async refreshAccessToken(refreshToken: string) {
     // 3️⃣ Password check
     const isMatch = await principal.comparePassword(password);
     if (!isMatch) {
-      throw new Error("Invalid email or password");
+      throw new Error("Invalid password");
     }
 
     // 4️⃣ Issue JWT
@@ -531,7 +530,7 @@ static async refreshAccessToken(refreshToken: string) {
 
     // 2️⃣ Password check
     const isMatch = await teacher.comparePassword(password);
-    if (!isMatch) throw new Error("Invalid email or password");
+    if (!isMatch) throw new Error("Invalid password");
 
     // 3️⃣ Define the payload using the JwtPayload interface
     const payload: JwtPayload = {
@@ -569,7 +568,7 @@ static async refreshAccessToken(refreshToken: string) {
     if (!student) throw new Error("Invalid email or password");
 
     const isMatch = await student.comparePassword(password);
-    if (!isMatch) throw new Error("Invalid email or password");
+    if (!isMatch) throw new Error("Invalid password");
 
     // 1️⃣ Prepare the payload
     const payload: JwtPayload = {
@@ -600,7 +599,14 @@ static async refreshAccessToken(refreshToken: string) {
   ====================================================== */
   static async updatePrincipal(
     principalId: string,
-    data: { name?: string; password?: string },
+    data: {
+      name?: string;
+      password?: string;
+      phone?: string;
+      qualification?: string;
+      gender?: 'Male' | 'Female' | 'Other';
+      yearsOfExperience?: number;
+    },
   ) {
     const principal = await Principal.findById(principalId).select("+password");
 
@@ -615,6 +621,22 @@ static async refreshAccessToken(refreshToken: string) {
     if (data.password) {
       // password hashing handled by schema hook
       principal.password = data.password;
+    }
+
+    if (data.phone !== undefined) {
+      principal.phone = data.phone;
+    }
+
+    if (data.qualification !== undefined) {
+      principal.qualification = data.qualification;
+    }
+
+    if (data.gender !== undefined) {
+      principal.gender = data.gender;
+    }
+
+    if (data.yearsOfExperience !== undefined) {
+      principal.yearsOfExperience = data.yearsOfExperience;
     }
 
     await principal.save();
