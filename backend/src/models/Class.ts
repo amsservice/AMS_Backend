@@ -6,6 +6,7 @@ export interface ClassDoc extends Document {
   schoolId: Types.ObjectId;
   sessionId: Types.ObjectId;
   teacherId?: Types.ObjectId;
+  isActive: boolean;
 }
 
 const ClassSchema = new Schema<ClassDoc>(

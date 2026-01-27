@@ -23,12 +23,13 @@ export const createClass = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // 2️⃣ Prevent duplicate class in same session ✅
+    // 2 Prevent duplicate class in same session 
     const exists = await Class.findOne({
       name,
       section,
       schoolId: req.user!.schoolId,
-      sessionId: activeSession._id
+      sessionId: activeSession._id,
+      isActive: true
     });
 
     if (exists) {
@@ -37,7 +38,7 @@ export const createClass = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // 3️⃣ Create class
+    // 3 Create class
     const cls = await ClassService.createClass({
       name,
       section,
@@ -92,7 +93,7 @@ export const getTotalClasses = async (
   res: Response
 ): Promise<void> => {
 
-  // 🔍 Find active session
+  // Find active session
   const activeSession = await Session.findOne({
     schoolId: req.user!.schoolId,
     isActive: true
@@ -105,7 +106,7 @@ export const getTotalClasses = async (
     return;
   }
 
-  // 📊 Total classes
+  // Total classes
   const totalClasses = await ClassService.getTotalClasses(
     req.user!.schoolId as any,
     activeSession._id
@@ -155,7 +156,7 @@ export const updateClass = async (
 // export const updateClass = async (req: AuthRequest, res: Response) => {
 //   const { id } = req.params;
 
-//   // ✅ SAFE ObjectId conversion
+//   // SAFE ObjectId conversion
 //   const classId = new Types.ObjectId(id);
 //   const schoolId = new Types.ObjectId(req.user!.schoolId);
 
@@ -173,6 +174,54 @@ export const updateClass = async (
 
 //   res.json(updated);
 // };
+
+/* =========================
+   BULK DELETE CLASSES
+========================= */
+export const bulkDeleteClasses = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const activeSession = await Session.findOne({
+      schoolId: req.user!.schoolId,
+      isActive: true
+    });
+
+    if (!activeSession) {
+      res.status(400).json({ message: 'No active session found' });
+      return;
+    }
+
+    const ids = Array.isArray((req.body as any)?.ids) ? (req.body as any).ids : [];
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ message: 'ids is required' });
+      return;
+    }
+
+    const results = await Promise.all(
+      ids.map(async (idRaw: any) => {
+        const id = String(idRaw || '').trim();
+        if (!id || !Types.ObjectId.isValid(id)) {
+          return { id, ok: false, message: 'Invalid id' };
+        }
+
+        try {
+          await ClassService.deleteClass(
+            new Types.ObjectId(id),
+            new Types.ObjectId(req.user!.schoolId),
+            activeSession._id
+          );
+          return { id, ok: true };
+        } catch (err: any) {
+          return { id, ok: false, message: err?.message || 'Failed' };
+        }
+      })
+    );
+
+    const successCount = results.filter((r) => r.ok).length;
+    res.json({ success: true, successCount, results });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
 
 /* =========================
    DELETE CLASS

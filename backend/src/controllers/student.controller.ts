@@ -62,6 +62,37 @@ const buildDuplicateKeyMessage = (err: any) => {
   return "Duplicate value not allowed";
 };
 
+export const bulkDeactivateStudents = async (req: AuthRequest, res: Response) => {
+  const roles = req.user!.roles;
+  if (!roles.includes('principal') && !roles.includes('coordinator')) {
+    return res.status(403).json({ message: 'Only principal or coordinator can deactivate students' });
+  }
+
+  const ids = Array.isArray((req.body as any)?.ids) ? (req.body as any).ids : [];
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ message: 'ids is required' });
+  }
+
+  const results = await Promise.all(
+    ids.map(async (idRaw: any) => {
+      const id = String(idRaw || '').trim();
+      if (!id || !Types.ObjectId.isValid(id)) {
+        return { id, ok: false, message: 'Invalid id' };
+      }
+
+      try {
+        await StudentService.deactivateStudent(req.user!.schoolId!, id);
+        return { id, ok: true };
+      } catch (err: any) {
+        return { id, ok: false, message: err?.message || 'Failed' };
+      }
+    })
+  );
+
+  const successCount = results.filter((r) => r.ok).length;
+  return res.json({ success: true, successCount, results });
+};
+
 /* 
    TEACHER: ADD STUDENT
  */
@@ -111,8 +142,8 @@ export const getStudentsByClass = async (req: AuthRequest, res: Response) => {
 
 export const deleteStudent = async (req: AuthRequest, res: Response) => {
   const roles = req.user!.roles;
-  if (!roles.includes("principal")) {
-    return res.status(403).json({ message: 'Only principal can delete student' });
+  if (!roles.includes("principal") && !roles.includes("coordinator")) {
+    return res.status(403).json({ message: 'Only principal or coordinator can delete student' });
   }
 
   const studentId = req.params.id;
@@ -130,8 +161,8 @@ export const deleteStudent = async (req: AuthRequest, res: Response) => {
 
 export const deactivateStudent = async (req: AuthRequest, res: Response) => {
   const roles = req.user!.roles;
-  if (!roles.includes("principal")) {
-    return res.status(403).json({ message: 'Only principal can deactivate student' });
+  if (!roles.includes("principal") && !roles.includes("coordinator")) {
+    return res.status(403).json({ message: 'Only principal or coordinator can deactivate student' });
   }
 
   const studentId = req.params.id;

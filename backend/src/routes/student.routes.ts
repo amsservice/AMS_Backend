@@ -1,5 +1,5 @@
 import { Router,Response } from 'express';
-import { createStudent, getMyProfile,updateStudentByTeacher,changeMyPassword,getTotalStudentsClassWise,getMyStudents,bulkUploadStudents,createStudentByPrincipal,getSchoolStudents,bulkUploadStudentsSchoolWide, getStudentsByClass,getStudentById, deactivateStudent } from '../controllers/student.controller';
+import { createStudent, getMyProfile,updateStudentByTeacher,changeMyPassword,getTotalStudentsClassWise,getMyStudents,bulkUploadStudents,createStudentByPrincipal,getSchoolStudents,bulkUploadStudentsSchoolWide, getStudentsByClass,getStudentById, deactivateStudent, bulkDeactivateStudents } from '../controllers/student.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { enforceStudentLimit } from '../middleware/planLimit.middleware';
@@ -62,15 +62,22 @@ router.put(
 router.get(
   '/school-students',
   authMiddleware,
-  allowRoles(['principal']),
+  allowRoles(['principal', 'coordinator']),
   getSchoolStudents
 );
 
 router.put(
   '/:id/deactivate',
   authMiddleware,
-  allowRoles(['principal']),
+  allowRoles(['principal', 'coordinator']),
   deactivateStudent
+);
+
+router.post(
+  '/bulk-deactivate',
+  authMiddleware,
+  allowRoles(['principal', 'coordinator']),
+  bulkDeactivateStudents
 );
 
 /* =====================================================
@@ -96,7 +103,7 @@ router.get(
 router.get(
   '/class/:classId/students',
   authMiddleware,
-  allowRoles(['principal']),
+  allowRoles(['principal', 'coordinator']),
   getStudentsByClass
 );
 
@@ -113,7 +120,7 @@ router.post(
 router.post(
   '/bulk-upload-school',
   authMiddleware,
-  allowRoles(['principal']),
+  allowRoles(['principal', 'coordinator']),
   enforceStudentLimit,
   uploadCSV.single('csvFile'),
   bulkUploadStudentsSchoolWide
@@ -126,7 +133,7 @@ router.post(
 router.get(
   '/:id',
   authMiddleware,
-  allowRoles(['principal', 'teacher', 'student']),
+  allowRoles(['principal', 'coordinator', 'teacher', 'student']),
   getStudentById
 );
 

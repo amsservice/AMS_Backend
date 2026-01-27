@@ -4,7 +4,8 @@ import {
   getClasses,
   getTotalClasses,
   updateClass,
-   deleteClass
+   deleteClass,
+   bulkDeleteClasses
 } from '../controllers/class.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { allowRoles } from '../middleware/role.middleware';
@@ -36,6 +37,12 @@ router.delete(
   allowRoles(['principal', 'coordinator']),
   
   deleteClass
+);
+
+router.post(
+  '/bulk-deactivate',
+  allowRoles(['principal', 'coordinator']),
+  bulkDeleteClasses
 );
 
 router.get(
