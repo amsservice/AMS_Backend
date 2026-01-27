@@ -6,6 +6,7 @@ export interface ClassDoc extends Document {
   schoolId: Types.ObjectId;
   sessionId: Types.ObjectId;
   teacherId?: Types.ObjectId;
+  isActive: boolean;
 }
 
 const ClassSchema = new Schema<ClassDoc>(
@@ -27,7 +28,9 @@ const ClassSchema = new Schema<ClassDoc>(
       index: true
     },
 
-    teacherId: { type: Schema.Types.ObjectId, ref: 'Teacher' }
+    teacherId: { type: Schema.Types.ObjectId, ref: 'Staff' },
+
+    isActive: { type: Boolean, default: true, index: true }
   },
   { timestamps: true }
 );

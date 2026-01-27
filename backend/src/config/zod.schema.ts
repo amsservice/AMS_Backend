@@ -415,7 +415,8 @@ export const updateTeacherSchema = z
       (v) => ((v ?? '').trim().match(/[A-Za-z]/g) || []).length >= 5,
       { message: 'Address must contain at least 5 letters' }
     )
-    .optional()
+    .optional(),
+  roles: z.array(z.enum(['teacher', 'coordinator'])).min(1).optional()
 })
   .superRefine((data, ctx) => {
     if (data.dob instanceof Date && typeof data.experienceYears === 'number') {
