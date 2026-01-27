@@ -5,7 +5,6 @@ import {
   listStaff,
   updateStaff,
   deleteStaff,
-  bulkUploadStaff,
   getMyProfile,
   updateMyProfile,
   assignClassToStaff,
@@ -29,7 +28,6 @@ import {
   changePasswordSchema
 } from '../config/zod.schema';
 import { swapStaffClasses } from '../controllers/staff.controller';
-import { uploadCSV } from '../middleware/upload.middleware';
 
 const router = Router();
 

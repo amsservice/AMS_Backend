@@ -204,189 +204,189 @@ export class StaffService {
     return staff;
   }
 
-  static async bulkCreateStaff(
-    params: {
-      schoolId: Types.ObjectId;
-      sessionId: Types.ObjectId;
-    },
-    staffRows: BulkStaffInput[]
-  ) {
-    if (!staffRows.length) {
-      throw new Error('No staff provided');
-    }
+  // static async bulkCreateStaff(
+  //   params: {
+  //     schoolId: Types.ObjectId;
+  //     sessionId: Types.ObjectId;
+  //   },
+  //   staffRows: BulkStaffInput[]
+  // ) {
+  //   if (!staffRows.length) {
+  //     throw new Error('No staff provided');
+  //   }
 
-    const validationErrors: { row: number; message: string }[] = [];
-    const seenEmails = new Set<string>();
+  //   const validationErrors: { row: number; message: string }[] = [];
+  //   const seenEmails = new Set<string>();
 
-    const normalizedEmails = staffRows.map((s) => String(s.email || '').trim().toLowerCase());
-    const existing = await Staff.find({ email: { $in: normalizedEmails } })
-      .select('email schoolId isActive')
-      .lean();
-    const existingByEmail = new Map<string, any>();
-    existing.forEach((doc: any) => existingByEmail.set(String(doc.email).toLowerCase(), doc));
+  //   const normalizedEmails = staffRows.map((s) => String(s.email || '').trim().toLowerCase());
+  //   const existing = await Staff.find({ email: { $in: normalizedEmails } })
+  //     .select('email schoolId isActive')
+  //     .lean();
+  //   const existingByEmail = new Map<string, any>();
+  //   existing.forEach((doc: any) => existingByEmail.set(String(doc.email).toLowerCase(), doc));
 
-    staffRows.forEach((s, index) => {
-      const row = index + 1;
+  //   staffRows.forEach((s, index) => {
+  //     const row = index + 1;
 
-      const trimmedName = String(s.name || '').trim();
-      const lettersInName = (trimmedName.match(/[A-Za-z]/g) || []).length;
-      if (!trimmedName) validationErrors.push({ row, message: 'Name is required' });
-      else if (lettersInName < 3)
-        validationErrors.push({ row, message: 'Name must contain at least 3 letters' });
+  //     const trimmedName = String(s.name || '').trim();
+  //     const lettersInName = (trimmedName.match(/[A-Za-z]/g) || []).length;
+  //     if (!trimmedName) validationErrors.push({ row, message: 'Name is required' });
+  //     else if (lettersInName < 3)
+  //       validationErrors.push({ row, message: 'Name must contain at least 3 letters' });
 
-      const email = String(s.email || '').trim().toLowerCase();
-      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      if (!email) validationErrors.push({ row, message: 'Email is required' });
-      else if (!emailOk) validationErrors.push({ row, message: 'Email is invalid' });
+  //     const email = String(s.email || '').trim().toLowerCase();
+  //     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  //     if (!email) validationErrors.push({ row, message: 'Email is required' });
+  //     else if (!emailOk) validationErrors.push({ row, message: 'Email is invalid' });
 
-      if (email) {
-        if (seenEmails.has(email)) {
-          validationErrors.push({ row, message: 'Duplicate email in CSV' });
-        }
-        seenEmails.add(email);
+  //     if (email) {
+  //       if (seenEmails.has(email)) {
+  //         validationErrors.push({ row, message: 'Duplicate email in CSV' });
+  //       }
+  //       seenEmails.add(email);
 
-        const existingStaff = existingByEmail.get(email);
-        if (existingStaff) {
-          const sameSchool = String(existingStaff.schoolId) === String(params.schoolId);
-          if (!sameSchool) {
-            validationErrors.push({ row, message: 'Email already exists' });
-          } else if (existingStaff.isActive === false) {
-            validationErrors.push({ row, message: 'Email already exists with inactive status' });
-          } else {
-            validationErrors.push({ row, message: 'Email already exists' });
-          }
-        }
-      }
+  //       const existingStaff = existingByEmail.get(email);
+  //       if (existingStaff) {
+  //         const sameSchool = String(existingStaff.schoolId) === String(params.schoolId);
+  //         if (!sameSchool) {
+  //           validationErrors.push({ row, message: 'Email already exists' });
+  //         } else if (existingStaff.isActive === false) {
+  //           validationErrors.push({ row, message: 'Email already exists with inactive status' });
+  //         } else {
+  //           validationErrors.push({ row, message: 'Email already exists' });
+  //         }
+  //       }
+  //     }
 
-      const password = String(s.password || '');
-      if (!password) validationErrors.push({ row, message: 'Password is required' });
-      else if (password.length < 6)
-        validationErrors.push({ row, message: 'Password must be at least 6 characters' });
+  //     const password = String(s.password || '');
+  //     if (!password) validationErrors.push({ row, message: 'Password is required' });
+  //     else if (password.length < 6)
+  //       validationErrors.push({ row, message: 'Password must be at least 6 characters' });
 
-      const phone = String(s.phone || '').trim();
-      if (!phone) validationErrors.push({ row, message: 'Phone is required' });
-      else if (!/^\d{10}$/.test(phone))
-        validationErrors.push({ row, message: 'Phone must be exactly 10 digits (numbers only)' });
+  //     const phone = String(s.phone || '').trim();
+  //     if (!phone) validationErrors.push({ row, message: 'Phone is required' });
+  //     else if (!/^\d{10}$/.test(phone))
+  //       validationErrors.push({ row, message: 'Phone must be exactly 10 digits (numbers only)' });
 
-      const dob = s.dob;
-      let ageYears: number | null = null;
-      if (!(dob instanceof Date) || Number.isNaN(dob.getTime())) {
-        validationErrors.push({ row, message: 'DOB is invalid' });
-      } else {
-        const today = new Date();
-        if (dob.getTime() > today.getTime()) {
-          validationErrors.push({ row, message: 'DOB cannot be in the future' });
-        } else {
-          const age =
-            today.getFullYear() -
-            dob.getFullYear() -
-            (today.getMonth() < dob.getMonth() ||
-            (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())
-              ? 1
-              : 0);
-          ageYears = age;
-          if (age < 18) validationErrors.push({ row, message: 'DOB must be at least 18 years ago' });
-        }
-      }
+  //     const dob = s.dob;
+  //     let ageYears: number | null = null;
+  //     if (!(dob instanceof Date) || Number.isNaN(dob.getTime())) {
+  //       validationErrors.push({ row, message: 'DOB is invalid' });
+  //     } else {
+  //       const today = new Date();
+  //       if (dob.getTime() > today.getTime()) {
+  //         validationErrors.push({ row, message: 'DOB cannot be in the future' });
+  //       } else {
+  //         const age =
+  //           today.getFullYear() -
+  //           dob.getFullYear() -
+  //           (today.getMonth() < dob.getMonth() ||
+  //           (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())
+  //             ? 1
+  //             : 0);
+  //         ageYears = age;
+  //         if (age < 18) validationErrors.push({ row, message: 'DOB must be at least 18 years ago' });
+  //       }
+  //     }
 
-      if (!s.gender) validationErrors.push({ row, message: 'Gender is required' });
-      else if (!['male', 'female', 'other'].includes(s.gender))
-        validationErrors.push({ row, message: 'Gender is invalid' });
+  //     if (!s.gender) validationErrors.push({ row, message: 'Gender is required' });
+  //     else if (!['male', 'female', 'other'].includes(s.gender))
+  //       validationErrors.push({ row, message: 'Gender is invalid' });
 
-      if (s.highestQualification !== undefined && String(s.highestQualification).trim() !== '') {
-        const hq = String(s.highestQualification).trim();
-        const letters = (hq.match(/[A-Za-z]/g) || []).length;
-        if (letters < 2)
-          validationErrors.push({ row, message: 'Highest qualification must contain at least 2 letters' });
-        if (hq.length > 100)
-          validationErrors.push({ row, message: 'Highest qualification cannot exceed 100 characters' });
-      }
+  //     if (s.highestQualification !== undefined && String(s.highestQualification).trim() !== '') {
+  //       const hq = String(s.highestQualification).trim();
+  //       const letters = (hq.match(/[A-Za-z]/g) || []).length;
+  //       if (letters < 2)
+  //         validationErrors.push({ row, message: 'Highest qualification must contain at least 2 letters' });
+  //       if (hq.length > 100)
+  //         validationErrors.push({ row, message: 'Highest qualification cannot exceed 100 characters' });
+  //     }
 
-      if (s.experienceYears !== undefined) {
-        const n = s.experienceYears;
-        if (!Number.isFinite(n) || !Number.isInteger(n)) {
-          validationErrors.push({ row, message: 'Experience years must be a whole number' });
-        } else {
-          if (n < 0) validationErrors.push({ row, message: 'Experience cannot be negative' });
-          if (n > 42) validationErrors.push({ row, message: 'Experience cannot be greater than 42 years' });
+  //     if (s.experienceYears !== undefined) {
+  //       const n = s.experienceYears;
+  //       if (!Number.isFinite(n) || !Number.isInteger(n)) {
+  //         validationErrors.push({ row, message: 'Experience years must be a whole number' });
+  //       } else {
+  //         if (n < 0) validationErrors.push({ row, message: 'Experience cannot be negative' });
+  //         if (n > 42) validationErrors.push({ row, message: 'Experience cannot be greater than 42 years' });
 
-          if (ageYears !== null) {
-            if (n > ageYears)
-              validationErrors.push({ row, message: 'Experience years cannot be greater than age' });
-            else if (ageYears - n < 14)
-              validationErrors.push({ row, message: 'DOB and experience years difference must be at least 14 years' });
-          }
-        }
-      }
+  //         if (ageYears !== null) {
+  //           if (n > ageYears)
+  //             validationErrors.push({ row, message: 'Experience years cannot be greater than age' });
+  //           else if (ageYears - n < 14)
+  //             validationErrors.push({ row, message: 'DOB and experience years difference must be at least 14 years' });
+  //         }
+  //       }
+  //     }
 
-      if (s.address !== undefined && String(s.address).trim() !== '') {
-        const addr = String(s.address).trim();
-        const letters = (addr.match(/[A-Za-z]/g) || []).length;
-        if (letters < 5) validationErrors.push({ row, message: 'Address must contain at least 5 letters' });
-        if (addr.length > 250) validationErrors.push({ row, message: 'Address cannot exceed 250 characters' });
-      }
-    });
+  //     if (s.address !== undefined && String(s.address).trim() !== '') {
+  //       const addr = String(s.address).trim();
+  //       const letters = (addr.match(/[A-Za-z]/g) || []).length;
+  //       if (letters < 5) validationErrors.push({ row, message: 'Address must contain at least 5 letters' });
+  //       if (addr.length > 250) validationErrors.push({ row, message: 'Address cannot exceed 250 characters' });
+  //     }
+  //   });
 
-    if (validationErrors.length) {
-      return {
-        success: false,
-        validationErrors
-      };
-    }
+  //   if (validationErrors.length) {
+  //     return {
+  //       success: false,
+  //       validationErrors
+  //     };
+  //   }
 
-    const preparedDocs = await Promise.all(
-      staffRows.map(async (s) => {
-        const roles = s.roles?.length ? s.roles : ['teacher'];
-        const hashedPassword = await bcrypt.hash(String(s.password), 10);
+  //   const preparedDocs = await Promise.all(
+  //     staffRows.map(async (s) => {
+  //       const roles = s.roles?.length ? s.roles : ['teacher'];
+  //       const hashedPassword = await bcrypt.hash(String(s.password), 10);
 
-        return {
-          name: String(s.name).trim(),
-          email: String(s.email).trim().toLowerCase(),
-          password: hashedPassword,
-          phone: String(s.phone).trim(),
-          dob: s.dob,
-          gender: s.gender,
-          highestQualification:
-            s.highestQualification !== undefined && String(s.highestQualification).trim() !== ''
-              ? String(s.highestQualification).trim()
-              : undefined,
-          experienceYears: typeof s.experienceYears === 'number' ? s.experienceYears : undefined,
-          address:
-            s.address !== undefined && String(s.address).trim() !== ''
-              ? String(s.address).trim()
-              : undefined,
-          roles,
-          schoolId: params.schoolId,
-          history: [],
-          roleHistory: [
-            {
-              roles,
-              sessionId: params.sessionId,
-              changedAt: new Date()
-            }
-          ]
-        };
-      })
-    );
+  //       return {
+  //         name: String(s.name).trim(),
+  //         email: String(s.email).trim().toLowerCase(),
+  //         password: hashedPassword,
+  //         phone: String(s.phone).trim(),
+  //         dob: s.dob,
+  //         gender: s.gender,
+  //         highestQualification:
+  //           s.highestQualification !== undefined && String(s.highestQualification).trim() !== ''
+  //             ? String(s.highestQualification).trim()
+  //             : undefined,
+  //         experienceYears: typeof s.experienceYears === 'number' ? s.experienceYears : undefined,
+  //         address:
+  //           s.address !== undefined && String(s.address).trim() !== ''
+  //             ? String(s.address).trim()
+  //             : undefined,
+  //         roles,
+  //         schoolId: params.schoolId,
+  //         history: [],
+  //         roleHistory: [
+  //           {
+  //             roles,
+  //             sessionId: params.sessionId,
+  //             changedAt: new Date()
+  //           }
+  //         ]
+  //       };
+  //     })
+  //   );
 
-    const mongoSession = await mongoose.startSession();
-    mongoSession.startTransaction();
+  //   const mongoSession = await mongoose.startSession();
+  //   mongoSession.startTransaction();
 
-    try {
-      await Staff.insertMany(preparedDocs, { session: mongoSession });
-      await mongoSession.commitTransaction();
-      return {
-        success: true,
-        successCount: preparedDocs.length,
-        message: 'Staff uploaded successfully'
-      };
-    } catch (err) {
-      await mongoSession.abortTransaction();
-      throw err;
-    } finally {
-      mongoSession.endSession();
-    }
-  }
+  //   try {
+  //     await Staff.insertMany(preparedDocs, { session: mongoSession });
+  //     await mongoSession.commitTransaction();
+  //     return {
+  //       success: true,
+  //       successCount: preparedDocs.length,
+  //       message: 'Staff uploaded successfully'
+  //     };
+  //   } catch (err) {
+  //     await mongoSession.abortTransaction();
+  //     throw err;
+  //   } finally {
+  //     mongoSession.endSession();
+  //   }
+  // }
 
   /* ======================================================
      ASSIGN CLASS (Principal)
