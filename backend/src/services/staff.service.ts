@@ -5,6 +5,130 @@ import type { UserRole } from '../utils/jwt';
 
 export class StaffService {
 
+  static async bulkCreateStaff(
+    params: {
+      schoolId: Types.ObjectId;
+      sessionId: Types.ObjectId;
+    },
+    staffRows: Array<{
+      name: string;
+      email: string;
+      password: string;
+      phone: string;
+      dob: Date;
+      gender: 'male' | 'female' | 'other';
+      highestQualification?: string;
+      experienceYears?: number;
+      address?: string;
+      role?: string;
+    }>
+  ) {
+    if (!staffRows.length) {
+      throw new Error('No staff provided');
+    }
+
+    const validationErrors: { row: number; message: string }[] = [];
+    const seenEmails = new Set<string>();
+
+    staffRows.forEach((s, index) => {
+      const row = index + 1;
+
+      const trimmedName = String(s.name || '').trim();
+      const lettersInName = (trimmedName.match(/[A-Za-z]/g) || []).length;
+      if (!trimmedName) validationErrors.push({ row, message: 'Name is required' });
+      else if (lettersInName < 3)
+        validationErrors.push({ row, message: 'Name must contain at least 3 letters' });
+
+      const email = String(s.email || '').trim().toLowerCase();
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      if (!email) validationErrors.push({ row, message: 'Email is required' });
+      else if (!emailOk) validationErrors.push({ row, message: 'Email is invalid' });
+
+      if (email) {
+        if (seenEmails.has(email)) {
+          validationErrors.push({ row, message: 'Duplicate email in CSV' });
+        }
+        seenEmails.add(email);
+      }
+
+      const password = String(s.password || '');
+      if (!password) validationErrors.push({ row, message: 'Password is required' });
+      else if (password.length < 6)
+        validationErrors.push({ row, message: 'Password must be at least 6 characters' });
+
+      const phone = String(s.phone || '').trim();
+      if (!phone) validationErrors.push({ row, message: 'Phone is required' });
+      else if (!/^\d{10}$/.test(phone))
+        validationErrors.push({ row, message: 'Phone must be exactly 10 digits (numbers only)' });
+
+      const dob = s.dob;
+      if (!(dob instanceof Date) || Number.isNaN(dob.getTime())) {
+        validationErrors.push({ row, message: 'DOB is invalid' });
+      }
+
+      if (!s.gender) validationErrors.push({ row, message: 'Gender is required' });
+      else if (!['male', 'female', 'other'].includes(s.gender))
+        validationErrors.push({ row, message: 'Gender is invalid' });
+
+      const normalizedRole = String(s.role ?? '').trim().toLowerCase() || 'teacher';
+      if (!['teacher', 'coordinator'].includes(normalizedRole)) {
+        validationErrors.push({ row, message: 'Role must be teacher or coordinator' });
+      }
+    });
+
+    if (validationErrors.length) {
+      return {
+        success: false,
+        validationErrors
+      };
+    }
+
+    const mongoSession = await mongoose.startSession();
+    mongoSession.startTransaction();
+
+    try {
+      for (const row of staffRows) {
+        const normalizedRole = String(row.role ?? '').trim().toLowerCase() || 'teacher';
+        const roles = [normalizedRole] as Array<'teacher' | 'coordinator'>;
+        const staff = new Staff({
+          name: String(row.name).trim(),
+          email: String(row.email).trim().toLowerCase(),
+          password: String(row.password),
+          phone: String(row.phone).trim(),
+          dob: row.dob,
+          gender: row.gender,
+          highestQualification:
+            row.highestQualification !== undefined && String(row.highestQualification).trim() !== ''
+              ? String(row.highestQualification).trim()
+              : undefined,
+          experienceYears: typeof row.experienceYears === 'number' ? row.experienceYears : undefined,
+          address:
+            row.address !== undefined && String(row.address).trim() !== ''
+              ? String(row.address).trim()
+              : undefined,
+          schoolId: params.schoolId,
+          roles,
+          history: []
+        });
+
+        (staff as any)._roleSessionId = params.sessionId;
+        await staff.save({ session: mongoSession });
+      }
+
+      await mongoSession.commitTransaction();
+      return {
+        success: true,
+        successCount: staffRows.length,
+        message: 'Staff uploaded successfully'
+      };
+    } catch (err) {
+      await mongoSession.abortTransaction();
+      throw err;
+    } finally {
+      mongoSession.endSession();
+    }
+  }
+
   /* ======================================================
      CREATE STAFF (Principal)
   ====================================================== */

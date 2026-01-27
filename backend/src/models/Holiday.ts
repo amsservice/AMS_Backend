@@ -71,4 +71,9 @@ const holidaySchema = new Schema<IHoliday>(
   { timestamps: true }
 );
 
+holidaySchema.index(
+  { schoolId: 1, sessionId: 1, startDate: 1, name: 1 },
+  { unique: true }
+);
+
 export const Holiday = model<IHoliday>('Holiday', holidaySchema);

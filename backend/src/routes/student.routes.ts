@@ -79,7 +79,7 @@ router.put(
 router.get(
   '/stats/class-wise',
   authMiddleware,
-  allowRoles(['principal']),
+  allowRoles(['principal', 'coordinator']),
   getTotalStudentsClassWise
 );
 

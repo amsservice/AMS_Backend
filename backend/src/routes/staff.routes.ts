@@ -4,6 +4,7 @@ import {
   listStaff,
   updateStaff,
   deleteStaff,
+  bulkUploadStaff,
   getMyProfile,
   updateMyProfile,
   assignClassToStaff,
@@ -25,6 +26,7 @@ import {
   changePasswordSchema
 } from '../config/zod.schema';
 import { swapStaffClasses } from '../controllers/staff.controller';
+import { uploadCSV } from '../middleware/upload.middleware';
 
 const router = Router();
 
@@ -55,6 +57,13 @@ router.post(
 );
 
 router.get('/', allowRoles(['principal','coordinator']), listStaff);
+
+router.post(
+  '/bulk-upload',
+  allowRoles(['principal', 'coordinator']),
+  uploadCSV.single('csvFile'),
+  bulkUploadStaff
+);
 
 router.put(
   '/:id',
