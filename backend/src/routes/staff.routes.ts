@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   createStaff,
+  bulkUploadStaff,
   listStaff,
   updateStaff,
   deleteStaff,
@@ -12,12 +13,14 @@ import {
   deactivateStaff,
   activateStaff,
   getStaffFullProfileByRole,
-  updateStaffProfileByRole
+  updateStaffProfileByRole,
+  bulkDeactivateStaff
 } from '../controllers/staff.controller';
 
 import { authMiddleware } from '../middleware/auth.middleware';
 import { allowRoles } from '../middleware/role.middleware';
 import { validate } from '../middleware/validate.middleware';
+import { uploadCSV } from '../middleware/upload.middleware';
 import {
   createTeacherSchema,
   updateTeacherSchema,
@@ -54,6 +57,13 @@ router.post(
   createStaff
 );
 
+router.post(
+  '/bulk-upload',
+  allowRoles(['principal','coordinator']),
+  uploadCSV.single('csvFile'),
+  bulkUploadStaff
+);
+
 router.get('/', allowRoles(['principal','coordinator']), listStaff);
 
 router.put(
@@ -77,6 +87,12 @@ router.post(
 
 router.put('/:id/deactivate', allowRoles(['principal','coordinator']), deactivateStaff);
 router.put('/:id/activate', allowRoles(['principal','coordinator']), activateStaff);
+
+router.post(
+  '/bulk-deactivate',
+  allowRoles(['principal','coordinator']),
+  bulkDeactivateStaff
+);
 
 /* ======================================================
    PASSWORD
@@ -118,7 +134,7 @@ router.get(
 router.put(
   '/:id/profile',
   allowRoles(['principal','coordinator']),
-  validate(updateMyProfileSchema),
+  validate(updateTeacherSchema),
   updateStaffProfileByRole
 );
 

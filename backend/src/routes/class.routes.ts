@@ -4,7 +4,8 @@ import {
   getClasses,
   getTotalClasses,
   updateClass,
-   deleteClass
+   deleteClass,
+   bulkDeleteClasses
 } from '../controllers/class.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { allowRoles } from '../middleware/role.middleware';
@@ -12,7 +13,7 @@ import { allowRoles } from '../middleware/role.middleware';
 const router = Router();
 
 router.use(authMiddleware);
-router.use(allowRoles(['principal']));
+router.use(allowRoles(['principal', 'coordinator']));
 
 router.post('/', createClass);
 router.get('/', getClasses);
@@ -23,7 +24,7 @@ router.get('/', getClasses);
 ===================================== */
 router.put(
   '/:id',
-  allowRoles(['principal' ]),
+  allowRoles(['principal', 'coordinator' ]),
 
   updateClass
 );
@@ -33,14 +34,20 @@ router.put(
 ===================================== */
 router.delete(
   '/:id',
-  allowRoles(['principal']),
+  allowRoles(['principal', 'coordinator']),
   
   deleteClass
 );
 
+router.post(
+  '/bulk-deactivate',
+  allowRoles(['principal', 'coordinator']),
+  bulkDeleteClasses
+);
+
 router.get(
   '/totalclass',
-  allowRoles(['principal']),
+  allowRoles(['principal', 'coordinator']),
   getTotalClasses
 );
 

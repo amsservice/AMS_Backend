@@ -41,7 +41,7 @@ export const getSessions = async (req: AuthRequest, res: Response) => {
 
     let sessions;
 
-    if (roles.includes('principal')) {
+    if (roles.includes('principal') || roles.includes('coordinator')) {
       sessions = await SessionService.getSessions(
         new Types.ObjectId(schoolId)
       );

@@ -36,7 +36,7 @@ export class ClassService {
 ) {
   
 
-  const classes = await Class.find({ schoolId, sessionId })
+  const classes = await Class.find({ schoolId, sessionId, isActive: true })
     .populate('teacherId', 'name')
     .sort({ name: 1, section: 1 })
     .lean();
@@ -125,7 +125,8 @@ export class ClassService {
     const classDoc = await Class.findOne({
       _id: classId,
       schoolId,
-      sessionId
+      sessionId,
+      isActive: true
     });
 
     if (!classDoc) return null;
@@ -160,7 +161,8 @@ export class ClassService {
       );
     }
 
-    await classDoc.deleteOne();
+    classDoc.isActive = false;
+    await classDoc.save();
     return classDoc;
   }
 
@@ -174,7 +176,8 @@ export class ClassService {
   ): Promise<number> {
     return Class.countDocuments({
       schoolId,
-      sessionId
+      sessionId,
+      isActive: true
     });
     
   }
