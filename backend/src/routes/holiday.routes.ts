@@ -16,13 +16,13 @@ router.use(authMiddleware);
 /* READ (ALL ROLES) */
 router.get(
   '/',
-  allowRoles(['principal', 'teacher', 'student']),
+  allowRoles(['principal', 'coordinator', 'teacher', 'student']),
   getHolidays
 );
 
 /* WRITE (PRINCIPAL ONLY) */
-router.post('/', allowRoles(['principal']), createHoliday);
-router.put('/:id', allowRoles(['principal']), updateHoliday);
-router.delete('/:id', allowRoles(['principal']), deleteHoliday);
+router.post('/', allowRoles(['principal', 'coordinator']), createHoliday);
+router.put('/:id', allowRoles(['principal', 'coordinator']), updateHoliday);
+router.delete('/:id', allowRoles(['principal', 'coordinator']), deleteHoliday);
 
 export default router;
