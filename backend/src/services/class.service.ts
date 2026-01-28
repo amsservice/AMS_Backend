@@ -36,7 +36,11 @@ export class ClassService {
 ) {
   
 
-  const classes = await Class.find({ schoolId, sessionId, isActive: true })
+  const classes = await Class.find({
+    schoolId,
+    sessionId,
+    $or: [{ isActive: true }, { isActive: { $exists: false } }]
+  })
     .populate('teacherId', 'name')
     .sort({ name: 1, section: 1 })
     .lean();
@@ -177,7 +181,7 @@ export class ClassService {
     return Class.countDocuments({
       schoolId,
       sessionId,
-      isActive: true
+      $or: [{ isActive: true }, { isActive: { $exists: false } }]
     });
     
   }

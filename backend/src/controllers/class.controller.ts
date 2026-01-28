@@ -61,18 +61,24 @@ export const createClass = async (req: AuthRequest, res: Response) => {
  */
 export const getClasses = async (req: AuthRequest, res: Response) => {
   try {
-    const activeSession = await Session.findOne({
+    let session = await Session.findOne({
       schoolId: req.user!.schoolId,
       isActive: true
     });
 
-    if (!activeSession) {
+    if (!session) {
+      session = await Session.findOne({
+        schoolId: req.user!.schoolId
+      }).sort({ startDate: -1 });
+    }
+
+    if (!session) {
       return res.json([]);
     }
 
     const classes = await ClassService.getClasses(
       req.user!.schoolId as any,
-      activeSession._id
+      session._id
     );
 
     res.json(classes);
@@ -94,22 +100,26 @@ export const getTotalClasses = async (
 ): Promise<void> => {
 
   // Find active session
-  const activeSession = await Session.findOne({
+  let session = await Session.findOne({
     schoolId: req.user!.schoolId,
     isActive: true
   });
 
-  if (!activeSession) {
-    res.json({
-      totalClasses: 0
-    });
+  if (!session) {
+    session = await Session.findOne({
+      schoolId: req.user!.schoolId
+    }).sort({ startDate: -1 });
+  }
+
+  if (!session) {
+    res.json({ totalClasses: 0 });
     return;
   }
 
   // Total classes
   const totalClasses = await ClassService.getTotalClasses(
     req.user!.schoolId as any,
-    activeSession._id
+    session._id
   );
 
   res.json({
