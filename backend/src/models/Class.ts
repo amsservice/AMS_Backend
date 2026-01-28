@@ -28,7 +28,13 @@ const ClassSchema = new Schema<ClassDoc>(
       index: true
     },
 
-    teacherId: { type: Schema.Types.ObjectId, ref: 'Staff' }
+    teacherId: { type: Schema.Types.ObjectId, ref: 'Staff' },
+
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true
+    }
   },
   { timestamps: true }
 );
